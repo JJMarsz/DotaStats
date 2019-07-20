@@ -5,6 +5,16 @@ import sys
 import sqlite3
 
 
+def create_connection(db_file):
+    """ create a database connection to a SQLite database """
+    try:
+        conn = sqlite3.connect(db_file)
+        print(sqlite3.version)
+    except Error as e:
+        print(e)
+    finally:
+        conn.close()
+
 def error(msg):
 	print('[ERROR] :: ' + msg)
 
@@ -28,10 +38,16 @@ if not ('https://www.dotabuff.com/esports/teams/' in team_series_url):
     error('Malformed URL :: Must be https://www.dotabuff.com/esports/teams/...') 
     sys.exit()
 
+# Connect to the Database
+create_connection("stats.db")
+cur = conn.cursor()
+
+# Some useful constants
 db = 'https://www.dotabuff.com'
 hdr = { 'User-Agent' : 'fantasy stats' }
-source = requests.get(team_series_url, headers=hdr)
 
+# Soup and site connections
+source = requests.get(team_series_url, headers=hdr)
 soup = bs.BeautifulSoup(source.text, 'lxml')
 
 #obtain the series
