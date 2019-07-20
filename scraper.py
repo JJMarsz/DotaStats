@@ -81,8 +81,8 @@ for series_link in series:
     end_idx = int(str(soup.title).find(' - '))
     team_1 = str(soup.title)[7:v_idx]
     team_2 = str(soup.title)[v_idx+4:end_idx]
-    print(team_1)
-    print(team_2)
+    team_1_wins = 0
+    team_2_wins = 0
     # Find the type of series
     if 'Best of ' in soup.get_text():
         idx = soup.get_text().find('Best of ')
@@ -97,14 +97,21 @@ for series_link in series:
 
     # Count every match up until a team wins 'bo' amount
     for match_link in match_links:
-        if bo == 0:
+        if team_1_wins == int(bo/2)+1 or team_2_wins == int(bo/2)+1 or (bo == 2 and team_1_wins + team_2_wins == bo):
             break
         # Set up loop variables
         source = requests.get(match_link, headers=hdr)
         soup = bs.BeautifulSoup(source.text, 'lxml')
 
-
-        bo -= 1
+        # Find out who won
+        idx_1 = soup.get_text().find(team_1 + " Victory!")
+        if idx_1 != -1:
+        	team_1_wins += 1
+        else:
+        	team_2_wins += 1
+    series_idx = series_link.find('/series/') + 8
+    end_idx = series_link.find('-')
+    print("Inserted data from series " + series_link[series_idx:end_idx] + " :: " + str(team_1_wins) + " - " + str(team_2_wins) + " :: " + team_1 + " - " + team_2)
 
 
 
