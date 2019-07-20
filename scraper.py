@@ -68,14 +68,18 @@ while len(series) < int(num_series):
 # Loop through every series and store the data
 series = series[0:int(num_series)]
 for series_link in series:
-    # First connect to new webpage with a new soup
+    # Set up loop variables
     source = requests.get(series_link, headers=hdr)
     soup = bs.BeautifulSoup(source.text, 'lxml')
-
+    bo = -1
     # Find all the games
-    for of in soup.find_all('Best of '):
-    	print(of)
+    if 'Best of ' in soup.get_text():
+        idx = soup.get_text().find('Best of ')
+        bo = int(soup.get_text()[idx + 8])
+    else:
+    	error('Cannot find the amount of games in the series')
+    print(bo)
     for url in soup.find_all('a'):
-    	if 'matches/' in url.get('href'):
-        	print(url.get('href'))
+        if 'matches/' in url.get('href'):
+            print(url.get('href'))
 
