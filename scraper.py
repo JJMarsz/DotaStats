@@ -68,18 +68,44 @@ while len(series) < int(num_series):
 # Loop through every series and store the data
 series = series[0:int(num_series)]
 for series_link in series:
+    # Check if this series is account for already
+
+    # TODO :: Add SQLite lookup
+
     # Set up loop variables
     source = requests.get(series_link, headers=hdr)
     soup = bs.BeautifulSoup(source.text, 'lxml')
     bo = -1
-    # Find all the games
+    match_links = []
+    v_idx = int(str(soup.title).find(' vs '))
+    end_idx = int(str(soup.title).find(' - '))
+    team_1 = str(soup.title)[7:v_idx]
+    team_2 = str(soup.title)[v_idx+4:end_idx]
+    print(team_1)
+    print(team_2)
+    # Find the type of series
     if 'Best of ' in soup.get_text():
         idx = soup.get_text().find('Best of ')
         bo = int(soup.get_text()[idx + 8])
     else:
-    	error('Cannot find the amount of games in the series')
-    print(bo)
+        error('Cannot find the amount of games in the series')
+
+    # Get every match link in the page
     for url in soup.find_all('a'):
-        if 'matches/' in url.get('href'):
-            print(url.get('href'))
+        if '/matches/' in url.get('href'):
+            match_links.append(db + url.get('href'))
+
+    # Count every match up until a team wins 'bo' amount
+    for match_link in match_links:
+        if bo == 0:
+            break
+        # Set up loop variables
+        source = requests.get(match_link, headers=hdr)
+        soup = bs.BeautifulSoup(source.text, 'lxml')
+
+
+        bo -= 1
+
+
+
 
