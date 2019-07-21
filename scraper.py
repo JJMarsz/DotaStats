@@ -64,6 +64,33 @@ def getMatchLinks(soup):
     match_links = match_links[0:game_no]
     return match_links
 
+# returns a dictionary of data extracted from the overview page
+def getOverviewData(soup):
+	overview_data = {'kills' : {}, 'deaths' : {}, 'lh_and_d' : {}, 'gpm' : {}, 'wards' : {}, 'hero' : {}}
+	table = soup.find_all('table')[0]
+	players = []
+	heroes = []
+	# Get Radiant set
+	for url in table.find_all('a'):
+		if url.get('href')[url.get('href').find('-')+1:] not in players and '/esports/players/' in url.get('href'):
+			players.append(url.get('href')[url.get('href').find('-')+1:])
+		if url.get('href')[8:] not in heroes and '/heroes/' in url.get('href'):
+			heroes.append(url.get('href')[8:])
+	# Get Dire set
+	table = soup.find_all('table')[1]
+	for url in table.find_all('a'):
+		if url.get('href')[url.get('href').find('-')+1:] not in players and '/esports/players/' in url.get('href'):
+			players.append(url.get('href')[url.get('href').find('-')+1:])
+		if url.get('href')[8:] not in heroes and '/heroes/' in url.get('href'):
+			heroes.append(url.get('href')[8:])
+	players = players[0:9]
+	heroes = heroes[0:9]
+	for i in range(9):
+		print(players[i] + heroes[i])
+
+
+
+
 #
 # Main
 #
@@ -126,6 +153,17 @@ for series_link in series:
             team_1_wins += 1
         else:
             team_2_wins += 1
+
+        #Extract all the neccesary data
+        overview_data = getOverviewData(soup)
+        soup = getSoup(match_link + '/combat')
+        #combat_data = getCombatData(soup)
+        #soup = getSoup(match_link + '/kills')
+        #kills_data = getKillsData(soup)
+        #soup = getSoup(match_link + '/objectives')
+        #objectives_data = getObjectivesData(soup)
+        #soup = getSoup(match_link + '/runes')
+        #runes_data = getRunesData(soup)
 
     series_idx = series_link.find('/series/') + 8
     end_idx = series_link.find('-')
