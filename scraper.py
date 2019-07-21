@@ -4,19 +4,18 @@ import requests
 import sys
 import sqlite3
 
-
-def create_connection(db_file):
-    """ create a database connection to a SQLite database """
-    try:
-        conn = sqlite3.connect(db_file)
-        print(sqlite3.version)
-    except Error as e:
-        print(e)
-    finally:
-        conn.close()
+# Some useful constants
+db = 'https://www.dotabuff.com'
+hdr = { 'User-Agent' : 'fantasy stats' }
 
 def error(msg):
     print('[ERROR] :: ' + msg)
+
+def getSoup(url):
+    source = requests.get(url, headers=hdr)
+    return bs.BeautifulSoup(source.text, 'lxml')
+
+#def getSeriesLinks():
 
 # Validate number of args
 if(len(sys.argv) > 3):
@@ -42,13 +41,9 @@ if not ('https://www.dotabuff.com/esports/teams/' in team_series_url):
 conn = sqlite3.connect("stats.db")
 cur = conn.cursor()
 
-# Some useful constants
-db = 'https://www.dotabuff.com'
-hdr = { 'User-Agent' : 'fantasy stats' }
 
 # Soup and site connections
-source = requests.get(team_series_url, headers=hdr)
-soup = bs.BeautifulSoup(source.text, 'lxml')
+soup = getSoup(team_series_url)
 
 # Obtain the selected series
 series = []
@@ -61,20 +56,18 @@ while len(series) < int(num_series):
         if 'page=' + next_page == url.get('href')[len(url.get('href'))-6:len(url.get('href'))]:
             next_page_link = db + url.get('href')
     #set up the variables for the next page
-    next_page_link = requests.get(next_page_link, headers=hdr)
-    soup = bs.BeautifulSoup(next_page_link.text, 'lxml')
+    soup = getSoup(next_page_link)
     next_page = str(int(next_page) + 1)
 
 # Loop through every series and store the data
 series = series[0:int(num_series)]
 for series_link in series:
-    # Check if this series is account for already
+    # Check if this series is accounted for already
 
     # TODO :: Add SQLite lookup
 
     # Set up loop variables
-    source = requests.get(series_link, headers=hdr)
-    soup = bs.BeautifulSoup(source.text, 'lxml')
+    soup = getSoup(series_link)
     bo = -1
     match_links = []
     v_idx = int(str(soup.title).find(' vs '))
@@ -100,15 +93,17 @@ for series_link in series:
         if team_1_wins == int(bo/2)+1 or team_2_wins == int(bo/2)+1 or (bo == 2 and team_1_wins + team_2_wins == bo):
             break
         # Set up loop variables
-        source = requests.get(match_link, headers=hdr)
-        soup = bs.BeautifulSoup(source.text, 'lxml')
+        soup = getSoup(match_link)
 
         # Find out who won
-        idx_1 = soup.get_text().find(team_1 + " Victory!")
-        if idx_1 != -1:
+        v_idx = soup.get_text().find(" Victory!")
+        team_1_idx = soup.get_text().find(team_1, v_idx-20, v_idx)
+        team_2_idx = soup.get_text().find(team_2, v_idx-20, v_idx)
+        if v_idx - team_1_idx < v_idx - team_2_idx:
         	team_1_wins += 1
         else:
         	team_2_wins += 1
+
     series_idx = series_link.find('/series/') + 8
     end_idx = series_link.find('-')
     print("Inserted data from series " + series_link[series_idx:end_idx] + " :: " + str(team_1_wins) + " - " + str(team_2_wins) + " :: " + team_1 + " - " + team_2)
