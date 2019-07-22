@@ -56,7 +56,7 @@ def getMatchLinks(soup):
     match_links = []
     game_no = 1
     while ("Game " + str(game_no) + ":") in soup.getText():
-    	game_no += 1
+        game_no += 1
     game_no -= 1
     for url in soup.find_all('a'):
         if '/matches/' in url.get('href'):
@@ -64,31 +64,39 @@ def getMatchLinks(soup):
     match_links = match_links[0:game_no]
     return match_links
 
+def blacklist(data):
+    blacklist = ['Top', 'Bottom', 'Middle', 'Roaming', '(Off)', '(Safe)', 'won', 'lost', 'Core', 'Support', 'Jungle', 'Dire', 'Radiant', 'drew']
+    for b in blacklist:
+        data = data.replace(b, '')
+    return data
+
+def getTableData(soup, num):
+    data = []
+    table = soup.findAll('table')
+    table_body = table[num].find('tbody')
+
+    rows = table_body.findAll('tr')
+    for row in rows:
+        cols = row.findAll('td')
+        cols = [ele.text.strip() for ele in cols]
+        data.append([ele for ele in cols if ele]) # Get rid of empty values
+    for i in range(5):
+        data[i][1] = blacklist(data[i][1])
+    return data
 # returns a dictionary of data extracted from the overview page
 def getOverviewData(soup):
-	print(" ")
-	overview_data = {'kills' : {}, 'deaths' : {}, 'lh_and_d' : {}, 'gpm' : {}, 'wards' : {}, 'hero' : {}}
-	table = soup.find_all('table')[0]
-	players = []
-	heroes = []
-	# Get Radiant set
-	for url in table.find_all('a'):
-		if url.get('href')[url.get('href').find('-')+1:] not in players and '/esports/players/' in url.get('href'):
-			players.append(url.get('href')[url.get('href').find('-')+1:]) 
-		if url.get('href')[8:] not in heroes and '/heroes/' in url.get('href') and '/abilities' not in url.get('href'):
-			heroes.append(url.get('href')[8:])
-	# Get Dire set
-	table = soup.find_all('table')[1]
-	for url in table.find_all('a'):
-		if url.get('href')[url.get('href').find('-')+1:] not in players and '/esports/players/' in url.get('href'):
-			players.append(url.get('href')[url.get('href').find('-')+1:])
-		if url.get('href')[8:] not in heroes and '/heroes/' in url.get('href') and '/abilities' not in url.get('href'):
-			heroes.append(url.get('href')[8:])
-	players = players[0:10]
-	heroes = heroes[0:10]
-	for i in range(10):
-		print(players[i] + " : " + heroes[i])
-
+    overview_data = {'kills' : {}, 'deaths' : {}, 'lh_and_d' : {}, 'gpm' : {}, 'wards' : {}, 'hero' : {}}
+    players = []
+    heroes = []
+    # Get Radiant and Dire data
+    data = getTableData(soup, 0) + getTableData(soup, 1)
+    for i in range(10):
+   		print(data[i])
+    players = players[0:10]
+    heroes = heroes[0:10]
+    #for i in range(5):
+     #   overview_data['hero'][players[i]] = heroes[i]
+    
 
 
 
