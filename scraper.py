@@ -66,6 +66,7 @@ def getMatchLinks(soup):
 
 # returns a dictionary of data extracted from the overview page
 def getOverviewData(soup):
+	print(" ")
 	overview_data = {'kills' : {}, 'deaths' : {}, 'lh_and_d' : {}, 'gpm' : {}, 'wards' : {}, 'hero' : {}}
 	table = soup.find_all('table')[0]
 	players = []
@@ -73,20 +74,20 @@ def getOverviewData(soup):
 	# Get Radiant set
 	for url in table.find_all('a'):
 		if url.get('href')[url.get('href').find('-')+1:] not in players and '/esports/players/' in url.get('href'):
-			players.append(url.get('href')[url.get('href').find('-')+1:])
-		if url.get('href')[8:] not in heroes and '/heroes/' in url.get('href'):
+			players.append(url.get('href')[url.get('href').find('-')+1:]) 
+		if url.get('href')[8:] not in heroes and '/heroes/' in url.get('href') and '/abilities' not in url.get('href'):
 			heroes.append(url.get('href')[8:])
 	# Get Dire set
 	table = soup.find_all('table')[1]
 	for url in table.find_all('a'):
 		if url.get('href')[url.get('href').find('-')+1:] not in players and '/esports/players/' in url.get('href'):
 			players.append(url.get('href')[url.get('href').find('-')+1:])
-		if url.get('href')[8:] not in heroes and '/heroes/' in url.get('href'):
+		if url.get('href')[8:] not in heroes and '/heroes/' in url.get('href') and '/abilities' not in url.get('href'):
 			heroes.append(url.get('href')[8:])
-	players = players[0:9]
-	heroes = heroes[0:9]
-	for i in range(9):
-		print(players[i] + heroes[i])
+	players = players[0:10]
+	heroes = heroes[0:10]
+	for i in range(10):
+		print(players[i] + " : " + heroes[i])
 
 
 
