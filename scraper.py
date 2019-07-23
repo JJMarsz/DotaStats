@@ -3,6 +3,7 @@ import urllib.request
 import requests
 import sys
 import sqlite3
+import time
 
 # Control flags
 fail_error = 0
@@ -10,7 +11,7 @@ log_lvl = 0
 
 # Some useful constants
 db = 'https://www.dotabuff.com'
-hdr = { 'User-Agent' : 'fantasy stats' }
+hdr = { 'User-Agent' : 'webscraping stats' }
 heroes = ['Abaddon', 'Alchemist', 'Axe', 'Beastmaster', 'Brewmaster', 'Bristleback', 'Centaur Warrunner', 'Chaos Knight', 
           'Clockwerk', 'Doom', 'Dragon Knight', 'Earth Spirit', 'Earthshaker', 'Elder Titan', 'Huskar', 'Io', 'Kunkka', 
           'Legion Commander', 'Lifestealer', 'Lycan', 'Magnus', 'Mars', 'Night Stalker', 'Omniknight', 'Phoenix', 'Pudge', 
@@ -36,8 +37,15 @@ def error(msg):
 
 # requests a soup of the url
 def getSoup(url):
+    time.sleep(5)
     source = requests.get(url, headers=hdr)
-    return bs.BeautifulSoup(source.text, 'lxml')
+    if source.status_code == 200:
+    	return bs.BeautifulSoup(source.text, 'lxml')
+    else:
+    	print(source.headers)
+    	error("Received error " + str(source.status_code) + ". Waiting " + str(60) + "s before trying again.")
+    	time.sleep(60)
+    	return getSoup(url)
 
 # retrieves the num_series amount of series_links
 def getSeriesLinks(soup, num_series):
@@ -116,6 +124,12 @@ def splitHeroPlayer(data_in):
     error("Hero not found")
     return 0
 
+# checks data for val and return retval on success
+def checkEmpty(data, retval):
+    if data == '-':
+        return retval
+    else:
+        return data
 
 # returns a dictionary of data extracted from the overview page
 def getOverviewData(soup):
@@ -125,17 +139,13 @@ def getOverviewData(soup):
     for i in range(10):
         hero_player = splitHeroPlayer(data[i][1])
         overview_data[hero_player['player']] = {'hero' : hero_player['hero'],
-                                                'kills' : int(data[i][2]),
-                                                'deaths' : int(data[i][3]),
-                                                'gpm' : int(data[i][8])}
-        lh = data[i][6]
-        d = data[i][7]
-        if lh == '-': lh = 0
-        if d == '-': d = 0
-        overview_data[hero_player['player']]['lh_and_d'] = int(lh) + int(d)
-        wards = data[i][13][:data[i][13].find('/')]
-        if wards == '-': overview_data[hero_player['player']]['wards'] = 0
-        else: overview_data[hero_player['player']]['wards'] = int(wards)
+                                                'kills' : int(checkEmpty(data[i][2], 0)),
+                                                'deaths' : int(checkEmpty(data[i][3], 0)),
+                                                'lh_and_d' : int(checkEmpty(data[i][6], 0)) + int(checkEmpty(data[i][7], 0)),
+                                                'wards' : int(checkEmpty(data[i][13][:data[i][13].find('/')], 0))}
+    #for k in overview_data:
+    #    print(k)
+    #    print(overview_data[k])
 
 #
 # Main
@@ -200,6 +210,7 @@ for series_link in series:
         else:
             team_2_wins += 1
 
+        table = soup.findAll('table')
         #Extract all the neccesary data
         overview_data = getOverviewData(soup)
         soup = getSoup(match_link + '/combat')
