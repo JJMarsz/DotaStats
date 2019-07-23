@@ -11,6 +11,20 @@ log_lvl = 0
 # Some useful constants
 db = 'https://www.dotabuff.com'
 hdr = { 'User-Agent' : 'fantasy stats' }
+heroes = ['Abaddon', 'Alchemist', 'Axe', 'Beastmaster', 'Brewmaster', 'Bristleback', 'Centaur Warrunner', 'Chaos Knight', 
+          'Clockwerk', 'Doom', 'Dragon Knight', 'Earth Spirit', 'Earthshaker', 'Elder Titan', 'Huskar', 'Io', 'Kunkka', 
+          'Legion Commander', 'Lifestealer', 'Lycan', 'Magnus', 'Mars', 'Night Stalker', 'Omniknight', 'Phoenix', 'Pudge', 
+          'Sand King', 'Slardar', 'Spirit Breaker', 'Sven', 'Tidehunter', 'Timbersaw', 'Tiny', 'Treant Protector', 'Tusk', 
+          'Underlord', 'Undying', 'Wraith King', 'Anti-Mage', 'Arc Warden', 'Bloodseeker', 'Bounty Hunter', 'Broodmother', 
+          'Clinkz', 'Drow Ranger', 'Ember Spirit', 'Faceless Void', 'Gyrocopter', 'Juggernaut', 'Lone Druid', 'Luna', 'Medusa',
+          'Meepo', 'Mirana', 'Monkey King', 'Morphling', 'Naga Siren', 'Nyx Assassin', 'Pangolier', 'Phantom Assassin', 
+          'Phantom Lancer', 'Razor', 'Riki', 'Shadow Fiend', 'Slark', 'Sniper', 'Spectre', 'Templar Assassin', 'Terrorblade',
+          'Troll Warlord', 'Ursa', 'Vengeful Spirit', 'Venomancer', 'Viper', 'Weaver', 'Ancient Apparition', 'Bane', 'Batrider', 
+          'Chen', 'Crystal Maiden', 'Dark Seer', 'Dark Willow', 'Dazzle', 'Death Prophet', 'Disruptor', 'Enchantress', 'Enigma',
+          'Grimstroke', 'Invoker', 'Jakiro', 'Keeper of the Light', 'Leshrac', 'Lich', 'Lina', 'Lion', 'Nature\'s Prophet', 
+          'Necrophos',' Ogre Magi', 'Oracle', 'Outworld Devourer', 'Puck', 'Pugna', 'Queen of Pain', 'Rubick', 'Shadow Demon', 
+          'Shadow Shaman', 'Silencer', 'Skywrath Mage', 'Storm Spirit', 'Techies', 'Tinker', 'Visage', 'Warlock', 'Windranger',
+          'Winter Wyvern', 'Witch Doctor', 'Zeus']
 
 #
 # Subroutines
@@ -90,21 +104,38 @@ def getTableData(soup, num):
     for i in range(5):
         data[i][1] = blacklist(data[i][1])
     return data
+
+# splits the data set with the hero and player
+def splitHeroPlayer(data_in):
+    data = {'hero' : '', 'player' : ''}
+    for h in heroes:
+        if h in data_in:
+            data['hero'] = h
+            data['player'] = data_in[:data_in.find(h)].strip()
+            return data
+    error("Hero not found")
+    return 0
+
+
 # returns a dictionary of data extracted from the overview page
 def getOverviewData(soup):
     overview_data = {}
     # Get Radiant and Dire data
     data = getTableData(soup, 0) + getTableData(soup, 1)
     for i in range(10):
-        overview_data[data[i][1][:data[i][1].find('  ')]] = {'hero' : data[i][1][data[i][1].find('  ')+2:],
-        													 'kills' : int(data[i][2]),
-        													 'deaths' : int(data[i][3]),
-        													 'lh_and_d' : int(data[i][6]) + int(data[i][7]),
-        													 'gpm' : int(data[i][8])}
+        hero_player = splitHeroPlayer(data[i][1])
+        overview_data[hero_player['player']] = {'hero' : hero_player['hero'],
+                                                'kills' : int(data[i][2]),
+                                                'deaths' : int(data[i][3]),
+                                                'gpm' : int(data[i][8])}
+        lh = data[i][6]
+        d = data[i][7]
+        if lh == '-': lh = 0
+        if d == '-': d = 0
+        overview_data[hero_player['player']]['lh_and_d'] = int(lh) + int(d)
         wards = data[i][13][:data[i][13].find('/')]
-        if wards == '-': overview_data[data[i][1][:data[i][1].find('  ')]]['wards'] = 0
-       	else: overview_data[data[i][1][:data[i][1].find('  ')]]['wards'] = int(wards)
-    return overview_data
+        if wards == '-': overview_data[hero_player['player']]['wards'] = 0
+        else: overview_data[hero_player['player']]['wards'] = int(wards)
 
 #
 # Main
