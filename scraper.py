@@ -66,8 +66,15 @@ def getMatchLinks(soup):
 
 def blacklist(data):
     blacklist = ['Top', 'Bottom', 'Middle', 'Roaming', '(Off)', '(Safe)', 'won', 'lost', 'Core', 'Support', 'Jungle', 'Dire', 'Radiant', 'drew']
+    whitelist = ['Topson']
     for b in blacklist:
+        for w in whitelist:
+            if w in data:
+            	data = data.replace(w, w.upper())
         data = data.replace(b, '')
+    for w in whitelist:
+        data = data.replace(w.upper(), w)
+    data = data.strip()
     return data
 
 def getTableData(soup, num):
@@ -91,13 +98,11 @@ def getOverviewData(soup):
     # Get Radiant and Dire data
     data = getTableData(soup, 0) + getTableData(soup, 1)
     for i in range(10):
-   		print(data[i])
+           print(data[i][1])
     players = players[0:10]
     heroes = heroes[0:10]
     #for i in range(5):
      #   overview_data['hero'][players[i]] = heroes[i]
-    
-
 
 
 #
