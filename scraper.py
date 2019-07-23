@@ -70,7 +70,7 @@ def blacklist(data):
     for b in blacklist:
         for w in whitelist:
             if w in data:
-            	data = data.replace(w, w.upper())
+                data = data.replace(w, w.upper())
         data = data.replace(b, '')
     for w in whitelist:
         data = data.replace(w.upper(), w)
@@ -92,18 +92,19 @@ def getTableData(soup, num):
     return data
 # returns a dictionary of data extracted from the overview page
 def getOverviewData(soup):
-    overview_data = {'kills' : {}, 'deaths' : {}, 'lh_and_d' : {}, 'gpm' : {}, 'wards' : {}, 'hero' : {}}
-    players = []
-    heroes = []
+    overview_data = {}
     # Get Radiant and Dire data
     data = getTableData(soup, 0) + getTableData(soup, 1)
     for i in range(10):
-           print(data[i][1])
-    players = players[0:10]
-    heroes = heroes[0:10]
-    #for i in range(5):
-     #   overview_data['hero'][players[i]] = heroes[i]
-
+        overview_data[data[i][1][:data[i][1].find('  ')]] = {'hero' : data[i][1][data[i][1].find('  ')+2:],
+        													 'kills' : int(data[i][2]),
+        													 'deaths' : int(data[i][3]),
+        													 'lh_and_d' : int(data[i][6]) + int(data[i][7]),
+        													 'gpm' : int(data[i][8])}
+        wards = data[i][13][:data[i][13].find('/')]
+        if wards == '-': overview_data[data[i][1][:data[i][1].find('  ')]]['wards'] = 0
+       	else: overview_data[data[i][1][:data[i][1].find('  ')]]['wards'] = int(wards)
+    return overview_data
 
 #
 # Main
