@@ -6,6 +6,7 @@ import sqlite3
 import time
 import os.path
 from os import path
+import random
 
 # Control flags
 fail_error = 0
@@ -14,7 +15,7 @@ cache_data = 1
 
 # Some useful constants
 db = 'https://www.dotabuff.com'
-hdr = { 'User-Agent' : 'webscraping stats' }
+hdr = { 'User-Agent' : 'sorry for hitting your server a lot, im trying to cache some pages for testing to ease my burden on your server' }
 heroes = ['Abaddon', 'Alchemist', 'Axe', 'Beastmaster', 'Brewmaster', 'Bristleback', 'Centaur Warrunner', 'Chaos Knight', 
           'Clockwerk', 'Doom', 'Dragon Knight', 'Earth Spirit', 'Earthshaker', 'Elder Titan', 'Huskar', 'Io', 'Kunkka', 
           'Legion Commander', 'Lifestealer', 'Lycan', 'Magnus', 'Mars', 'Night Stalker', 'Omniknight', 'Phoenix', 'Pudge', 
@@ -38,23 +39,29 @@ def error(msg):
     if fail_error:
         sys.exit()
 
+def log(msg):
+    print('[INFO] :: ' + msg)
+
 # Sanitates the URL 
 def cleanUrl(data):
     clean = {'?' : 'QMARKQ'}
     for k in clean.keys():
         if k in data:
             data = data.replace(k, clean[k])
-    return (data + 'f')
+    return (data + '.html')
 
 # requests a soup of the url
 def getSoup(url):
     # check cache if webpage was already downloaded
     if path.exists(cleanUrl(url[8:])):
+        log('Cache hit on: ' + url)
         f = open(cleanUrl(url[8:]), "r", encoding='utf-8')
         source = f.read()
         return bs.BeautifulSoup(source, 'lxml')
     else:
-        time.sleep(5)
+        log('Trying to access web URL: ' + url)
+        random.seed()
+        time.sleep(5 + random.randrange(3,6))
         source = requests.get(url, headers=hdr)
         if source.status_code != 200:
             print(source.headers)
@@ -63,6 +70,7 @@ def getSoup(url):
         else:
             exists = ''
             url = url[8:]
+            log('Success!')
             while url.find('/') != -1:
                 if not path.exists((exists + url[:url.find('/')+1])):
                     os.mkdir(exists + url[:url.find('/')+1])
@@ -169,7 +177,6 @@ def getOverviewData(soup):
         overview_data[hero_player['player']] = {'hero' : hero_player['hero'],
                                                 'kills' : int(checkEmpty(data[i][2], 0)),
                                                 'deaths' : int(checkEmpty(data[i][3], 0)),
-                                                'lh_and_d' : int(checkEmpty(data[i][6], 0)) + int(checkEmpty(data[i][7], 0)),
                                                 'wards' : int(checkEmpty(data[i][13][:data[i][13].find('/')], 0))}
     return overview_data
 #
@@ -249,7 +256,7 @@ for series_link in series:
 
     series_idx = series_link.find('/series/') + 8
     end_idx = series_link.find('-')
-    print("Inserted data from series " + series_link[series_idx:end_idx] + " :: " + str(team_1_wins) + " - " + str(team_2_wins) + " :: " + team_1 + " - " + team_2)
+    log("Inserted data from series " + series_link[series_idx:end_idx] + " :: " + str(team_1_wins) + " - " + str(team_2_wins) + " :: " + team_1 + " - " + team_2)
 
 
 
