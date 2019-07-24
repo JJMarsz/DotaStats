@@ -38,20 +38,21 @@ def error(msg):
     if fail_error:
         sys.exit()
 
-def findnth(haystack, needle, n):
-    parts= haystack.split(needle, n+1)
-    if len(parts)<=n+1:
-        return -1
-    return len(haystack)-len(parts[-1])-len(needle)
+# Sanitates the URL 
+def cleanUrl(data):
+    clean = {'?' : 'QMARKQ'}
+    for k in clean.keys():
+        if k in data:
+            data = data.replace(k, clean[k])
+    return (data + 'f')
 
 # requests a soup of the url
 def getSoup(url):
     # check cache if webpage was already downloaded
-    source = ''
-    if path.exists(url[8:]):
-        f = open(url, "r")
+    if path.exists(cleanUrl(url[8:])):
+        f = open(cleanUrl(url[8:]), "r", encoding='utf-8')
         source = f.read()
-        return bs.BeautifulSoup(source.text, 'lxml')
+        return bs.BeautifulSoup(source, 'lxml')
     else:
         time.sleep(5)
         source = requests.get(url, headers=hdr)
@@ -65,13 +66,11 @@ def getSoup(url):
             while url.find('/') != -1:
                 if not path.exists((exists + url[:url.find('/')+1])):
                     os.mkdir(exists + url[:url.find('/')+1])
-                print(exists + url[:url.find('/')+1])
                 exists += url[:url.find('/')+1]
                 url = url[url.find('/')+1:]
-            f = open(exists + url, "w+")
+            f = open(cleanUrl(exists + url), "w+", encoding='utf-8')
             f.write(source.text)
             f.close()
-            sys.exit()
         return bs.BeautifulSoup(source.text, 'lxml')
 
 # retrieves the num_series amount of series_links
@@ -113,6 +112,7 @@ def getMatchLinks(soup):
     match_links = match_links[0:game_no]
     return match_links
 
+# removes blacklisted words while maintaining whitelisted words
 def blacklist(data):
     blacklist = ['Top', 'Bottom', 'Middle', 'Roaming', '(Off)', '(Safe)', 'won', 'lost', 'Core', 'Support', 'Jungle', 'Dire', 'Radiant', 'drew']
     whitelist = ['Topson']
@@ -126,6 +126,7 @@ def blacklist(data):
     data = data.strip()
     return data
 
+# retrieves the 'num' table within the html
 def getTableData(soup, num):
     data = []
     table = soup.findAll('table')
@@ -170,10 +171,7 @@ def getOverviewData(soup):
                                                 'deaths' : int(checkEmpty(data[i][3], 0)),
                                                 'lh_and_d' : int(checkEmpty(data[i][6], 0)) + int(checkEmpty(data[i][7], 0)),
                                                 'wards' : int(checkEmpty(data[i][13][:data[i][13].find('/')], 0))}
-    #for k in overview_data:
-    #    print(k)
-    #    print(overview_data[k])
-
+    return overview_data
 #
 # Main
 #
