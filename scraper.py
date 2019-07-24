@@ -4,10 +4,13 @@ import requests
 import sys
 import sqlite3
 import time
+import os.path
+from os import path
 
 # Control flags
 fail_error = 0
 log_lvl = 0
+cache_data = 1
 
 # Some useful constants
 db = 'https://www.dotabuff.com'
@@ -35,17 +38,41 @@ def error(msg):
     if fail_error:
         sys.exit()
 
+def findnth(haystack, needle, n):
+    parts= haystack.split(needle, n+1)
+    if len(parts)<=n+1:
+        return -1
+    return len(haystack)-len(parts[-1])-len(needle)
+
 # requests a soup of the url
 def getSoup(url):
-    time.sleep(5)
-    source = requests.get(url, headers=hdr)
-    if source.status_code == 200:
-    	return bs.BeautifulSoup(source.text, 'lxml')
+    # check cache if webpage was already downloaded
+    source = ''
+    if path.exists(url[8:]):
+        f = open(url, "r")
+        source = f.read()
+        return bs.BeautifulSoup(source.text, 'lxml')
     else:
-    	print(source.headers)
-    	error("Received error " + str(source.status_code) + ". Waiting " + str(60) + "s before trying again.")
-    	time.sleep(60)
-    	return getSoup(url)
+        time.sleep(5)
+        source = requests.get(url, headers=hdr)
+        if source.status_code != 200:
+            print(source.headers)
+            error("Received error " + str(source.status_code) + ". Exiting...")
+            sys.exit()
+        else:
+            exists = ''
+            url = url[8:]
+            while url.find('/') != -1:
+                if not path.exists((exists + url[:url.find('/')+1])):
+                    os.mkdir(exists + url[:url.find('/')+1])
+                print(exists + url[:url.find('/')+1])
+                exists += url[:url.find('/')+1]
+                url = url[url.find('/')+1:]
+            f = open(exists + url, "w+")
+            f.write(source.text)
+            f.close()
+            sys.exit()
+        return bs.BeautifulSoup(source.text, 'lxml')
 
 # retrieves the num_series amount of series_links
 def getSeriesLinks(soup, num_series):
