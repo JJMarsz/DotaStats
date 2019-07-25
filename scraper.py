@@ -1,12 +1,7 @@
-import bs4 as bs
 import urllib.request
 import requests
 import sys
 import sqlite3
-import time
-import os.path
-from os import path
-import random
 import json
 
 # Control flags
@@ -48,14 +43,28 @@ def apiCall(url, key):
 	return json.loads(requests.get(od + url + '?api_key=' + key, headers=hdr).text)
 
 # returns upper bound on number of matches
-def getMatchLinks(team_id, num_series, key):
+def getMatchLinks(team_id, num_tourneys, key):
     match_json = apiCall('teams/' + team_id + '/matches', key)
     match_links = []
-    for i in range(int(num_series)*4):
+    t_count = 0
+    last_t = ''
+    for i in range(int(num_tourneys)*20):
+    	if match_json[i]['league_name'] != last_t:
+    		last_t = match_json[i]['league_name']
+    		t_count += 1
+    		if t_count > int(num_tourneys):
+    			break
     	match_links.append(match_json[i]['match_id'])
     return match_links
 
 # parse input params
+# Format:
+# key-string
+# team_id1 num_tournaments
+# team_id2 num_tournaments
+# ...
+# team_idN num_tournaments
+# (MUST HAVE NEW LINE AT END)
 def parseParams(params):
 	dic = {'key' : params[:params.find('\n')]}
 	params = params[params.find('\n')+1:]
@@ -86,18 +95,16 @@ cur = conn.cursor()
 # loop on each team
 for k in params.keys():
 	match_ids = getMatchLinks(k, params[k], key)
-	series_ids = []
 	for match_id in match_ids:
 		match_data = apiCall('matches/' + str(match_id), key)
 
 		# gather match stats
 
 
-		#gather player stats
+		# gather player stats
 
 
-		# early break condiiton
-		if match_data['series_id'] not in series_ids:
-			if len(series_ids) == int(params[k]):
-				break
-			series_ids.append(match_data['series_id'])
+		# BREAK EARLY TO LIMIT API CALLS FOR NOW
+		match_dp = [match_data['series_id'], match_data['match_id'], match_data['radiant_win'], match_data['dire_team_id'], match_data['radiant_team_id'], match_data['duration'], match_data['league']['name']]
+		print(match_dp)
+		break
