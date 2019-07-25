@@ -106,7 +106,7 @@ for k in params.keys():
 
 		# gather player stats
 		for player in match_data['players']:
-			player_dp[player['account_id']] = [int(player['hero_id']), int(player['kills']), int(player['deaths']), int(player['last_hits']) + \
+			player_dp[player['account_id']] = [int(match_data['match_id']), int(player['hero_id']), int(player['kills']), int(player['deaths']), int(player['last_hits']) + \
 												int(player['denies']), int(player['gold_per_min']), int(player['tower_kills']), \
 												int(player['roshan_kills']), float(player['teamfight_participation']), int(player['obs_placed']), \
 												int(player['camps_stacked']), int(player['rune_pickups']), int(player['firstblood_claimed']), float(player['stuns'])]
