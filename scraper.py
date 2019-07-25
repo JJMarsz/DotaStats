@@ -97,14 +97,21 @@ for k in params.keys():
 	match_ids = getMatchLinks(k, params[k], key)
 	for match_id in match_ids:
 		match_data = apiCall('matches/' + str(match_id), key)
+		player_dp = {}
 
 		# gather match stats
-
+		match_dp = [int(match_data['series_id']), int(match_data['match_id']), int(match_data['radiant_win']), int(match_data['dire_team_id']), \
+					int(match_data['radiant_team_id']), int(match_data['duration']), match_data['league']['name']]
+		print(match_dp)
 
 		# gather player stats
-
+		for player in match_data['players']:
+			player_dp[player['account_id']] = [int(player['hero_id']), int(player['kills']), int(player['deaths']), int(player['last_hits']) + \
+												int(player['denies']), int(player['gold_per_min']), int(player['tower_kills']), \
+												int(player['roshan_kills']), float(player['teamfight_participation']), int(player['obs_placed']), \
+												int(player['camps_stacked']), int(player['rune_pickups']), int(player['firstblood_claimed']), float(player['stuns'])]
+			print(str(player['account_id']) + " : " + str(player_dp[player['account_id']]))
 
 		# BREAK EARLY TO LIMIT API CALLS FOR NOW
-		match_dp = [match_data['series_id'], match_data['match_id'], match_data['radiant_win'], match_data['dire_team_id'], match_data['radiant_team_id'], match_data['duration'], match_data['league']['name']]
-		print(match_dp)
+
 		break
