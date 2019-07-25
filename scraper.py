@@ -10,6 +10,7 @@ log_lvl = 0
 cache_data = 1
 
 # Some useful constants
+start_2018 = 1513728000
 od = 'https://api.opendota.com/api/'
 hdr = { 'User-Agent' : 'im a robot beepboop' }
 heroes = ['Abaddon', 'Alchemist', 'Axe', 'Beastmaster', 'Brewmaster', 'Bristleback', 'Centaur Warrunner', 'Chaos Knight', 
@@ -101,7 +102,7 @@ for k in params.keys():
 
 		# gather match stats
 		match_dp = [int(match_data['series_id']), int(match_data['match_id']), int(match_data['radiant_win']), int(match_data['dire_team_id']), \
-					int(match_data['radiant_team_id']), int(match_data['duration']), match_data['league']['name']]
+					int(match_data['radiant_team_id']), int(match_data['duration']), match_data['league']['name'], int(match_data['start_time'])-start_2018]
 		print(match_dp)
 
 		# gather player stats
