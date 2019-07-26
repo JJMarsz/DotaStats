@@ -6,7 +6,7 @@ import json
 
 # Control flags
 fail_error = 0
-log_lvl = 2 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
+log_lvl = 3 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
 phase_lvl = 'ALL' #ALL, 1, 2, 3
 cache_data = 1
 db_file = 'stats.db'
@@ -116,15 +116,16 @@ if phase_lvl in ['ALL', '1']:
                 # gather match stats
                 match_dp = [int(match_data['match_id']), int(match_data['series_id']), int(match_data['radiant_win']), int(match_data['dire_team_id']), \
                             int(match_data['radiant_team_id']), int(match_data['duration']), match_data['league']['name'], int(match_data['start_time'])-start_2018]
-                debug(match_dp)
+                debug(str(match_dp))
                 cur.execute('INSERT INTO match_data VALUES (?,?,?,?,?,?,?,?)', match_dp)
                 # gather player stats
                 for player in match_data['players']:
+                    debug(str(player))
                     player_dp = [int(player['account_id']), int(match_data['match_id']), int(player['hero_id']), int(player['kills']), int(player['deaths']), 
                                 int(player['last_hits']) + int(player['denies']), int(player['gold_per_min']), int(player['tower_kills']), \
                                 int(player['roshan_kills']), float(player['teamfight_participation']), int(player['obs_placed']), \
                                 int(player['camps_stacked']), int(player['rune_pickups']), int(player['firstblood_claimed']), float(player['stuns'])]
-                    debug(player_dp)
+                    debug(str(player_dp))
                     cur.execute('INSERT INTO player_data VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', player_dp)
                 debug('Committing data points for match ' + str(match_data['match_id']))
                 conn.commit()
