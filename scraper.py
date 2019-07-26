@@ -6,8 +6,8 @@ import json
 
 # Control flags
 fail_error = 0
-log_lvl = 2 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
-phase_lvl = 'ALL' #ALL, 1, 2, 3, 4
+log_lvl = 3 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
+exec_phase = [2] #ALL, 1, 2, 3, 4
 cache_data = 1
 db_file = 'stats.db'
 
@@ -106,31 +106,8 @@ info('Connecting to the DB...')
 conn = sqlite3.connect(db_file)
 cur = conn.cursor()
 
-info('Phase 1 - Verifying lookup integrity')
-pro_list = apiCall('proPlayers')
-for k in params.keys():
-	# very team_lookup is filled aptly
-	info('Verifying team_lookup')
-	cur.execute('SELECT account_id FROM player_lookup WHERE team_id = ?', [k,])
-	accounts = cur.fetchall()
-	if len(accounts) == 5:
-		info('Already have team ' + str(k) + '\'s players')
-	elif len(accounts) > 5:
-		players = ''
-		error('Team ' + str(k) + ' has more than 5 players:')
-		for a in accounts:
-			players += ' ' + str(a);
-		error(players)
-	else:
-		info('Gathering team ' + str(k) + '\'s players into player_lookup')
-		all_team_players = apiCall('/teams/' + str(k) + '/players')
-		for p in all_team_players:
-			if p['is_current_team_member']:
-
-				cur.execute('INSERT INTO player_lookup VALUES (?,?,?,?)', [p['account_id'],p['name'],str(k),getPlayer(pro_list,p['account_id']),])
-break
-if phase_lvl in ['ALL', '1']:
-    info('Phase 2 - Scraping match and player data from OpenDota')
+if 1 in exec_phase:
+    info('Phase 1 - Scraping match and player data from OpenDota')
     # loop on each team
     for k in params.keys():
         info('Scraping team ' + k + '\'s matches')
@@ -158,12 +135,49 @@ if phase_lvl in ['ALL', '1']:
                     debug(str(player_dp))
                     cur.execute('INSERT INTO player_data VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', player_dp)
                 debug('Committing data points for match ' + str(match_data['match_id']))
-                conn.commit()
             else:
                 r += 1
+        conn.commit()
         info(str(r) + ' were redundant matches')
 
-info('Phase 3 - Aggregating data into summary tables in DB')
+if 2 in exec_phase:
+	info('Phase 2 - Verifying lookup integrity')
+	cur.execute('SELECT team_id from team_lookup')
+	teams = cur.fetchall()
+	for k in params.keys():
+		if str(k) in teams:
+			team = apiCall('teams/' + str(k))
+			cur.execute('INSERT INTO team_lookup VALUES (?,?,?)',[k,team['name'],team['tag'],])
+			info('Found team ' + str(k))
+		else:
+			info('Already stored team ' + str(k))
+	conn.commit()
+	sys.exit()
+	for k in params.keys():
+		# very team_lookup is filled aptly
+		info('Verifying player_lookup')
+		cur.execute('SELECT account_id FROM player_lookup WHERE team_id = ?', [k,])
+		accounts = cur.fetchall()
+		if len(accounts) == 5:
+			info('Already have team ' + str(k) + '\'s players')
+		elif len(accounts) > 5:
+			players = ''
+			error('Team ' + str(k) + ' has more than 5 players:')
+			for a in accounts:
+				players += ' ' + str(a);
+			error(players)
+		else:
+			info('Gathering team ' + str(k) + '\'s players into player_lookup')
+			all_team_players = apiCall('/teams/' + str(k) + '/players', key)
+			for p in all_team_players:
+				if p['is_current_team_member']:
+					cur.execute('INSERT INTO player_lookup VALUES (?,?,?,?)', [p['account_id'],p['name'],k,getPlayer(pro_list,p['account_id'])['fantasy_role'],])
+	conn.commit()
 
-info('Phase 4 - Querying tables in DB')
+if 3 in exec_phase:
+	info('Phase 3 - Aggregating data into summary tables in DB')
+
+if 4 in exec_phase:
+	info('Phase 4 - Querying tables in DB')
+
 conn.close()
