@@ -7,7 +7,7 @@ import json
 # Control flags
 fail_error = 0
 log_lvl = 2 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
-phase_lvl = 'ALL' #ALL, 1, 2, 3
+phase_lvl = 'ALL' #ALL, 1, 2, 3, 4
 cache_data = 1
 db_file = 'stats.db'
 
@@ -81,6 +81,10 @@ def parseParams(params):
         params = params[params.find('\n')+1:]
     return dic
     
+def getPlayer(l, acc_id):
+	for p in l:
+		if p['account_id'] == acc_id:
+			return p
 #    
 # Main
 #
@@ -101,8 +105,32 @@ params.pop('key')
 info('Connecting to the DB...')
 conn = sqlite3.connect(db_file)
 cur = conn.cursor()
+
+info('Phase 1 - Verifying lookup integrity')
+pro_list = apiCall('proPlayers')
+for k in params.keys():
+	# very team_lookup is filled aptly
+	info('Verifying team_lookup')
+	cur.execute('SELECT account_id FROM player_lookup WHERE team_id = ?', [k,])
+	accounts = cur.fetchall()
+	if len(accounts) == 5:
+		info('Already have team ' + str(k) + '\'s players')
+	elif len(accounts) > 5:
+		players = ''
+		error('Team ' + str(k) + ' has more than 5 players:')
+		for a in accounts:
+			players += ' ' + str(a);
+		error(players)
+	else:
+		info('Gathering team ' + str(k) + '\'s players into player_lookup')
+		all_team_players = apiCall('/teams/' + str(k) + '/players')
+		for p in all_team_players:
+			if p['is_current_team_member']:
+
+				cur.execute('INSERT INTO player_lookup VALUES (?,?,?,?)', [p['account_id'],p['name'],str(k),getPlayer(pro_list,p['account_id']),])
+break
 if phase_lvl in ['ALL', '1']:
-    info('Phase 1 - Scraping data from OpenDota')
+    info('Phase 2 - Scraping match and player data from OpenDota')
     # loop on each team
     for k in params.keys():
         info('Scraping team ' + k + '\'s matches')
@@ -135,7 +163,7 @@ if phase_lvl in ['ALL', '1']:
                 r += 1
         info(str(r) + ' were redundant matches')
 
-info('Phase 2 - Aggregating data in DB')
+info('Phase 3 - Aggregating data into summary tables in DB')
 
-info('Phase 3 - Querying data in DB')
+info('Phase 4 - Querying tables in DB')
 conn.close()
