@@ -85,6 +85,13 @@ def getPlayer(l, acc_id):
 	for p in l:
 		if p['account_id'] == acc_id:
 			return p
+
+def extractColumn(q, i=0):
+	data = []
+	for d in q:
+		data.append(d[i])
+	return data
+
 #    
 # Main
 #
@@ -143,18 +150,18 @@ if 1 in exec_phase:
 if 2 in exec_phase:
 	info('Phase 2 - Verifying lookup integrity')
 	cur.execute('SELECT team_id from team_lookup')
-	teams = cur.fetchall()
+	teams = extractColumn(cur.fetchall())
 	for k in params.keys():
-		if str(k) in teams:
-			team = apiCall('teams/' + str(k))
-			cur.execute('INSERT INTO team_lookup VALUES (?,?,?)',[k,team['name'],team['tag'],])
-			info('Found team ' + str(k))
+		if int(k) in teams:
+			info('Already have team ' + k)
 		else:
-			info('Already stored team ' + str(k))
+			team = apiCall('teams/' + k, key)
+			cur.execute('INSERT INTO team_lookup VALUES (?,?,?)',[k,team['name'].strip(),team['tag'].strip(),])
+			info('Found team ' + k)
 	conn.commit()
 	sys.exit()
 	for k in params.keys():
-		# very team_lookup is filled aptly
+		# verify team_lookup is filled
 		info('Verifying player_lookup')
 		cur.execute('SELECT account_id FROM player_lookup WHERE team_id = ?', [k,])
 		accounts = cur.fetchall()
