@@ -6,7 +6,7 @@ import json
 
 # Control flags
 fail_error = 0
-log_lvl = 3 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
+log_lvl = 2 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
 phase_lvl = 'ALL' #ALL, 1, 2, 3
 cache_data = 1
 db_file = 'stats.db'
@@ -55,6 +55,8 @@ def getMatchLinks(team_id, num_tourneys, key):
     t_count = 0
     last_t = ''
     for i in range(int(num_tourneys)*20):
+        if i >= len(match_json):
+            break
         if match_json[i]['league_name'] != last_t:
             last_t = match_json[i]['league_name']
             t_count += 1
