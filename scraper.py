@@ -105,33 +105,34 @@ if phase_lvl in ['ALL', '1']:
     for k in params.keys():
         info('Scraping team ' + k + '\'s matches')
         match_ids = getMatchLinks(k, params[k], key)
-        info('Found ' + str(len(match_ids)) + ' matches in last ' + params[k] + ' tournaments')
+        info('Discovered ' + str(len(match_ids)) + ' matches in last ' + params[k] + ' tournaments...')
+        r = 0
         for match_id in match_ids:
-            match_data = apiCall('matches/' + str(match_id), key)
-            player_dp = {}
-
-            # gather match stats
-            match_dp = [int(match_data['match_id']), int(match_data['series_id']), int(match_data['radiant_win']), int(match_data['dire_team_id']), \
-                        int(match_data['radiant_team_id']), int(match_data['duration']), match_data['league']['name'], int(match_data['start_time'])-start_2018]
-            debug(match_dp)
-            cur.execute('SELECT * FROM match_data WHERE match_id = ?', [match_dp[0],])
+            cur.execute('SELECT * FROM match_data WHERE match_id = ?', [match_id,])
             if len(cur.fetchall()) == 0:
+                match_data = apiCall('matches/' + str(match_id), key)
+                player_dp = {}
+
+                # gather match stats
+                match_dp = [int(match_data['match_id']), int(match_data['series_id']), int(match_data['radiant_win']), int(match_data['dire_team_id']), \
+                            int(match_data['radiant_team_id']), int(match_data['duration']), match_data['league']['name'], int(match_data['start_time'])-start_2018]
+                debug(match_dp)
                 cur.execute('INSERT INTO match_data VALUES (?,?,?,?,?,?,?,?)', match_dp)
-            # gather player stats
-            for player in match_data['players']:
-                player_dp = [int(player['account_id']), int(match_data['match_id']), int(player['hero_id']), int(player['kills']), int(player['deaths']), 
-                            int(player['last_hits']) + int(player['denies']), int(player['gold_per_min']), int(player['tower_kills']), \
-                            int(player['roshan_kills']), float(player['teamfight_participation']), int(player['obs_placed']), \
-                            int(player['camps_stacked']), int(player['rune_pickups']), int(player['firstblood_claimed']), float(player['stuns'])]
-                debug(player_dp)
-
-                cur.execute('SELECT * FROM player_data WHERE account_id = ?', [player_dp[0],])
-                if len(cur.fetchall()) == 0:
+                # gather player stats
+                for player in match_data['players']:
+                    player_dp = [int(player['account_id']), int(match_data['match_id']), int(player['hero_id']), int(player['kills']), int(player['deaths']), 
+                                int(player['last_hits']) + int(player['denies']), int(player['gold_per_min']), int(player['tower_kills']), \
+                                int(player['roshan_kills']), float(player['teamfight_participation']), int(player['obs_placed']), \
+                                int(player['camps_stacked']), int(player['rune_pickups']), int(player['firstblood_claimed']), float(player['stuns'])]
+                    debug(player_dp)
                     cur.execute('INSERT INTO player_data VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', player_dp)
-            debug('Committing data points for match ' + str(match_data['match_id']))
-            conn.commit()
+                debug('Committing data points for match ' + str(match_data['match_id']))
+                conn.commit()
+            else:
+                r += 1
+        info(str(r) + ' were redundant matches')
 
-info('Phase 2 - Aggregating data')
+info('Phase 2 - Aggregating data in DB')
 
-info('Phase 3 - Querying data')
+info('Phase 3 - Querying data in DB')
 conn.close()
