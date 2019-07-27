@@ -235,7 +235,7 @@ if 4 in exec_phase:
     cur.execute('SELECT * FROM role_summary')
     if len(cur.fetchall()) > 0:
         info('Flushing role_summary table...')
-        cur.execute('DELETE FROM player_summary')
+        cur.execute('DELETE FROM role_summary')
         conn.commit()
     info('Populating role_summary table...')
     for role in roles.keys():
