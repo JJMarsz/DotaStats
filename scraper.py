@@ -213,14 +213,19 @@ if 4 in exec_phase:
     players = cur.fetchall()
     for player in players:
     	cur.execute('SELECT AVG(kills), AVG(deaths), AVG(lh_and_d), AVG(gpm), AVG(tower_kills), AVG(roshan_kills), AVG(teamfight), \
-    		AVG(obs_placed), AVG(camps_stacked), AVG(rune_pickups), AVG(first_blood), AVG(stuns) FROM player_data WHERE account_id = ?', [player[0],])
+    		AVG(obs_placed), AVG(camps_stacked), AVG(rune_pickups), AVG(first_blood), AVG(stuns), AVG(duration) FROM player_data AS pd, match_data AS md WHERE md.match_id = pd.match_id AND pd.account_id = ?', [player[0],])
     	stats = cur.fetchall()
+
     	for stat_pt in stats:
 	    	stat_dp = stat_pt[0]*points['kills'] + stat_pt[1]*points['deaths'] + 3 + stat_pt[2]*points['lh_and_d'] + stat_pt[3]*points['gpm'] + \
 	    			stat_pt[4]*points['tower_kills'] + stat_pt[5]*points['roshan_kills'] + stat_pt[6]*points['teamfight'] + stat_pt[7]*points['obs_placed'] + \
 	    			stat_pt[8]*points['camps_stacked'] + stat_pt[9]*points['rune_pickups'] + stat_pt[10]*points['first_blood'] + stat_pt[11]*points['stuns']
-	    	cur.execute('INSERT INTO player_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', \
-	    															[player[1], roles[player[3]], stat_dp, stat_pt[0]*points['kills'], stat_pt[1]*points['deaths'] + 3, \
+	    	stat_pt = list(stat_pt)
+	    	for i in range(len(stat_pt)):
+	    		stat_pt[i] = round(stat_pt[i], 4)
+	    	stat_dp = round(stat_dp, 4)
+	    	cur.execute('INSERT INTO player_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', \
+	    															[player[1], roles[player[3]], round((stat_dp*60)/stat_pt[12], 4), stat_dp, stat_pt[0]*points['kills'], stat_pt[1]*points['deaths'] + 3, \
 	    															stat_pt[2]*points['lh_and_d'], stat_pt[3]*points['gpm'], stat_pt[4]*points['tower_kills'], \
 	    															stat_pt[5]*points['roshan_kills'], stat_pt[6]*points['teamfight'], stat_pt[7]*points['obs_placed'], \
 	    															stat_pt[8]*points['camps_stacked'], stat_pt[9]*points['rune_pickups'], stat_pt[10]*points['first_blood'], \
