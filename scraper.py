@@ -87,6 +87,35 @@ def extractColumn(q, i=0):
         data.append(d[i])
     return data
 
+# populates a summary table for the specific outline
+def summarize(table_name, pre_stats, all_flag, query_tail, params):
+    cur.execute('SELECT * FROM ' + table_name)
+    if len(cur.fetchall()) > 0:
+        info('Flushing ' + table_name + ' table...')
+        cur.execute('DELETE FROM ' + table_name)
+        conn.commit()
+    info('Populating ' + table_name + ' table...')
+    cur.execute('SELECT * FROM player_lookup')
+    players = cur.fetchall()
+    for player in players:
+        cur.execute('SELECT AVG(kills), AVG(deaths), AVG(lh_and_d), AVG(gpm), AVG(tower_kills), AVG(roshan_kills), AVG(teamfight), \
+            AVG(obs_placed), AVG(camps_stacked), AVG(rune_pickups), AVG(first_blood), AVG(stuns), AVG(duration) FROM player_data AS pd, ' + query_tail, params)
+        stats = cur.fetchall()
+
+        stat_dp = stats[0][0]*points['kills'] + stats[0][1]*points['deaths'] + 3 + stats[0][2]*points['lh_and_d'] + stats[0][3]*points['gpm'] + \
+                stats[0][4]*points['tower_kills'] + stats[0][5]*points['roshan_kills'] + stats[0][6]*points['teamfight'] + stats[0][7]*points['obs_placed'] + \
+                stats[0][8]*points['camps_stacked'] + stats[0][9]*points['rune_pickups'] + stats[0][10]*points['first_blood'] + stats[0][11]*points['stuns']
+        stats[0] = list(stats[0])
+        for i in range(len(stats[0])):
+            stats[0][i] = round(stats[0][i], 4)
+        stat_dp = round(stat_dp, 4)
+        cur.execute('INSERT INTO ' + table_name + ' VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', \
+                                                                [player[1], roles[player[3]], round((stat_dp*60)/stats[0][12], 4), stat_dp, stats[0][0]*points['kills'], stats[0][1]*points['deaths'] + 3, \
+                                                                stats[0][2]*points['lh_and_d'], stats[0][3]*points['gpm'], stats[0][4]*points['tower_kills'], \
+                                                                stats[0][5]*points['roshan_kills'], stats[0][6]*points['teamfight'], stats[0][7]*points['obs_placed'], \
+                                                                stats[0][8]*points['camps_stacked'], stats[0][9]*points['rune_pickups'], stats[0][10]*points['first_blood'], \
+                                                                stats[0][11]*points['stuns']])
+
 #    
 # Main
 #
@@ -215,21 +244,19 @@ if 4 in exec_phase:
         cur.execute('SELECT AVG(kills), AVG(deaths), AVG(lh_and_d), AVG(gpm), AVG(tower_kills), AVG(roshan_kills), AVG(teamfight), \
             AVG(obs_placed), AVG(camps_stacked), AVG(rune_pickups), AVG(first_blood), AVG(stuns), AVG(duration) FROM player_data AS pd, match_data AS md WHERE md.match_id = pd.match_id AND pd.account_id = ?', [player[0],])
         stats = cur.fetchall()
-
-        for stat_pt in stats:
-            stat_dp = stat_pt[0]*points['kills'] + stat_pt[1]*points['deaths'] + 3 + stat_pt[2]*points['lh_and_d'] + stat_pt[3]*points['gpm'] + \
-                    stat_pt[4]*points['tower_kills'] + stat_pt[5]*points['roshan_kills'] + stat_pt[6]*points['teamfight'] + stat_pt[7]*points['obs_placed'] + \
-                    stat_pt[8]*points['camps_stacked'] + stat_pt[9]*points['rune_pickups'] + stat_pt[10]*points['first_blood'] + stat_pt[11]*points['stuns']
-            stat_pt = list(stat_pt)
-            for i in range(len(stat_pt)):
-                stat_pt[i] = round(stat_pt[i], 4)
-            stat_dp = round(stat_dp, 4)
-            cur.execute('INSERT INTO player_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', \
-                                                                    [player[1], roles[player[3]], round((stat_dp*60)/stat_pt[12], 4), stat_dp, stat_pt[0]*points['kills'], stat_pt[1]*points['deaths'] + 3, \
-                                                                    stat_pt[2]*points['lh_and_d'], stat_pt[3]*points['gpm'], stat_pt[4]*points['tower_kills'], \
-                                                                    stat_pt[5]*points['roshan_kills'], stat_pt[6]*points['teamfight'], stat_pt[7]*points['obs_placed'], \
-                                                                    stat_pt[8]*points['camps_stacked'], stat_pt[9]*points['rune_pickups'], stat_pt[10]*points['first_blood'], \
-                                                                    stat_pt[11]*points['stuns']])
+        stat_dp = stats[0][0]*points['kills'] + stats[0][1]*points['deaths'] + 3 + stats[0][2]*points['lh_and_d'] + stats[0][3]*points['gpm'] + \
+                stats[0][4]*points['tower_kills'] + stats[0][5]*points['roshan_kills'] + stats[0][6]*points['teamfight'] + stats[0][7]*points['obs_placed'] + \
+                stats[0][8]*points['camps_stacked'] + stats[0][9]*points['rune_pickups'] + stats[0][10]*points['first_blood'] + stats[0][11]*points['stuns']
+        stats[0] = list(stats[0])
+        for i in range(len(stats[0])):
+            stats[0][i] = round(stats[0][i], 4)
+        stat_dp = round(stat_dp, 4)
+        cur.execute('INSERT INTO player_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', \
+                                                                [player[1], roles[player[3]], round((stat_dp*60)/stats[0][12], 4), stat_dp, stats[0][0]*points['kills'], stats[0][1]*points['deaths'] + 3, \
+                                                                stats[0][2]*points['lh_and_d'], stats[0][3]*points['gpm'], stats[0][4]*points['tower_kills'], \
+                                                                stats[0][5]*points['roshan_kills'], stats[0][6]*points['teamfight'], stats[0][7]*points['obs_placed'], \
+                                                                stats[0][8]*points['camps_stacked'], stats[0][9]*points['rune_pickups'], stats[0][10]*points['first_blood'], \
+                                                                stats[0][11]*points['stuns']])
     conn.commit()
 
     cur.execute('SELECT * FROM role_summary')
@@ -242,20 +269,19 @@ if 4 in exec_phase:
         cur.execute('SELECT AVG(kills), AVG(deaths), AVG(lh_and_d), AVG(gpm), AVG(tower_kills), AVG(roshan_kills), AVG(teamfight), \
             AVG(obs_placed), AVG(camps_stacked), AVG(rune_pickups), AVG(first_blood), AVG(stuns), AVG(duration) FROM player_data AS pd, match_data AS md, player_lookup AS pl WHERE md.match_id = pd.match_id AND pd.account_id =  pl.account_id AND role = ?', [role,])
         stats = cur.fetchall()
-        for stat_pt in stats:
-            stat_dp = stat_pt[0]*points['kills'] + stat_pt[1]*points['deaths'] + 3 + stat_pt[2]*points['lh_and_d'] + stat_pt[3]*points['gpm'] + \
-                    stat_pt[4]*points['tower_kills'] + stat_pt[5]*points['roshan_kills'] + stat_pt[6]*points['teamfight'] + stat_pt[7]*points['obs_placed'] + \
-                    stat_pt[8]*points['camps_stacked'] + stat_pt[9]*points['rune_pickups'] + stat_pt[10]*points['first_blood'] + stat_pt[11]*points['stuns']
-            stat_pt = list(stat_pt)
-            for i in range(len(stat_pt)):
-                stat_pt[i] = round(stat_pt[i], 4)
-            stat_dp = round(stat_dp, 4)
-            cur.execute('INSERT INTO role_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', \
-                                                                    [role, round((stat_dp*60)/stat_pt[12], 4), stat_dp, stat_pt[0]*points['kills'], stat_pt[1]*points['deaths'] + 3, \
-                                                                    stat_pt[2]*points['lh_and_d'], stat_pt[3]*points['gpm'], stat_pt[4]*points['tower_kills'], \
-                                                                    stat_pt[5]*points['roshan_kills'], stat_pt[6]*points['teamfight'], stat_pt[7]*points['obs_placed'], \
-                                                                    stat_pt[8]*points['camps_stacked'], stat_pt[9]*points['rune_pickups'], stat_pt[10]*points['first_blood'], \
-                                                                    stat_pt[11]*points['stuns']])
+        stat_dp = stats[0][0]*points['kills'] + stats[0][1]*points['deaths'] + 3 + stats[0][2]*points['lh_and_d'] + stats[0][3]*points['gpm'] + \
+                stats[0][4]*points['tower_kills'] + stats[0][5]*points['roshan_kills'] + stats[0][6]*points['teamfight'] + stats[0][7]*points['obs_placed'] + \
+                stats[0][8]*points['camps_stacked'] + stats[0][9]*points['rune_pickups'] + stats[0][10]*points['first_blood'] + stats[0][11]*points['stuns']
+        stats[0] = list(stats[0])
+        for i in range(len(stats[0])):
+            stats[0][i] = round(stats[0][i], 4)
+        stat_dp = round(stat_dp, 4)
+        cur.execute('INSERT INTO role_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', \
+                                                                [roles[role], round((stat_dp*60)/stats[0][12], 4), stat_dp, stats[0][0]*points['kills'], stats[0][1]*points['deaths'] + 3, \
+                                                                stats[0][2]*points['lh_and_d'], stats[0][3]*points['gpm'], stats[0][4]*points['tower_kills'], \
+                                                                stats[0][5]*points['roshan_kills'], stats[0][6]*points['teamfight'], stats[0][7]*points['obs_placed'], \
+                                                                stats[0][8]*points['camps_stacked'], stats[0][9]*points['rune_pickups'], stats[0][10]*points['first_blood'], \
+                                                                stats[0][11]*points['stuns']])
     conn.commit()
 if 5 in exec_phase:
     info('Phase 5 - Querying tables in DB')
