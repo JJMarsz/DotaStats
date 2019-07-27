@@ -218,8 +218,14 @@ if 4 in exec_phase:
     	for stat_pt in stats:
 	    	stat_dp = stat_pt[0]*points['kills'] + stat_pt[1]*points['deaths'] + 3 + stat_pt[2]*points['lh_and_d'] + stat_pt[3]*points['gpm'] + \
 	    			stat_pt[4]*points['tower_kills'] + stat_pt[5]*points['roshan_kills'] + stat_pt[6]*points['teamfight'] + stat_pt[7]*points['obs_placed'] + \
-	    			stat_pt[8]*points['camps_stacked'] + stat_pt[9]*points['rune_pickups'] + stat_pt[10]*float(points['first_blood']) + stat_pt[11]*points['stuns']
-	    	cur.execute('INSERT INTO player_summary VALUES (?,?)',[player[1], stat_dp])
+	    			stat_pt[8]*points['camps_stacked'] + stat_pt[9]*points['rune_pickups'] + stat_pt[10]*points['first_blood'] + stat_pt[11]*points['stuns']
+
+	    	cur.execute('INSERT INTO player_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)', \
+	    															[player[1], stat_dp, stat_pt[0]*points['kills'], stat_pt[1]*points['deaths'] + 3, \
+	    															stat_pt[2]*points['lh_and_d'], stat_pt[3]*points['gpm'], stat_pt[4]*points['tower_kills'], \
+	    															stat_pt[5]*points['roshan_kills'], stat_pt[6]*points['teamfight'], stat_pt[7]*points['obs_placed'], \
+	    															stat_pt[8]*points['camps_stacked'], stat_pt[9]*points['rune_pickups'], stat_pt[10]*points['first_blood'], \
+	    															stat_pt[11]*points['stuns']])
     conn.commit()
 
 if 5 in exec_phase:
