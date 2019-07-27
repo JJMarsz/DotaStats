@@ -7,7 +7,7 @@ import json
 # Control flags
 fail_error = 0
 log_lvl = 2 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
-exec_phase = [2] #ALL, 1, 2, 3, 4
+exec_phase = [1,2] #ALL, 1, 2, 3, 4
 cache_data = 1
 db_file = 'stats.db'
 
@@ -177,7 +177,7 @@ if 2 in exec_phase:
         else:
             recent_matches.append([dire_data[i][1],dire_data[i][2], 0])
     for match in recent_matches:
-        cur.execute('SELECT account_id FROM player_lookup WHERE team_id = ?', [match[1],])
+        cur.execute('SELECT account_id FROM player_lookup WHERE team_id = ?', [match[0],])
         num_players = len(cur.fetchall())
         if num_players == 0:
             info('Gathering players for team ' + str(match[0]))
@@ -186,13 +186,23 @@ if 2 in exec_phase:
                 if match[2] == player['isRadiant']:
                     role = getPlayer(pros, player['account_id'])['fantasy_role']
                     cur.execute('INSERT INTO player_lookup VALUES (?,?,?,?)', [int(player['account_id']), player['name'], int(match[0]), role])
-        elif num_players > 6:
+        elif num_players == 5:
+        	info('Already have players for team ' + str(match[0]))
+        elif num_players > 5:
             error('Team ' + str(match[1]) + ' has too many players (' + str(num_players) + ')')
         else:
             error('Team ' + str(match[1]) + ' isn\'t empty and has too little players (' + str(num_players) + ')')
     conn.commit()
 
     info('Generating hero_lookup')
+    heroes = apiCall('/heroes', key)
+    cur.execute('SELECT hero_id FROM hero_lookup')
+    loaded_heroes = extractColumn(cur.fetchall())
+    for hero in heroes:
+        if hero['id'] not in loaded_heroes:
+            cur.execute('INSERT INTO hero_lookup VALUES (?,?,?)',[hero['id'],hero['localized_name'],hero['legs'],])
+            info('Inserted ' + hero['localized_name'])
+    conn.commit()
 if 3 in exec_phase:
     info('Phase 3 - Aggregating data into summary tables in DB')
 
