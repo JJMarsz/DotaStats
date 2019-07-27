@@ -7,7 +7,7 @@ import json
 # Control flags
 fail_error = 0
 log_lvl = 2 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
-exec_phase = [1,2] #ALL, 1, 2, 3, 4
+exec_phase = [4] #ALL, 1, 2, 3, 4, 5
 cache_data = 1
 db_file = 'stats.db'
 
@@ -16,18 +16,24 @@ start_2018 = 1513728000
 od = 'https://api.opendota.com/api/'
 hdr = { 'User-Agent' : 'im a robot beepboop' }
 roles = {1 : 'Core', 2 : 'Support', 3 : 'Mid'}
+points = {'kills' : 0.3, 'deaths' : -0.3, 'lh_and_d' : 0.003, 'gpm' : 0.002, 'tower_kills' : 1, 'roshan_kills' : 1, 'teamfight' : 3, \
+			'obs_placed' : 0.5, 'camps_stacked' : 0.5, 'rune_pickups' : 0.25, 'first_blood' : 4, 'stuns' : 0.05}# Deaths +3
 
 #
 # Subroutines
 #
+
+# error log
 def error(msg):
     if log_lvl > 0: print('[ERROR] :: ' + msg)
     if fail_error:
         sys.exit()
 
+# info log
 def info(msg):
     if log_lvl > 1: print('[INFO] :: ' + msg)
 
+# debug log
 def debug(msg):
     if log_lvl > 2: print('[DEBUG] :: ' + msg)
 
@@ -68,11 +74,13 @@ def parseParams(params):
         params = params[params.find('\n')+1:]
     return dic
     
+# Given a list of player dictionaries, returns dict with given id
 def getPlayer(l, acc_id):
     for p in l:
         if p['account_id'] == acc_id:
             return p
 
+# extracts a column from list of lists
 def extractColumn(q, i=0):
     data = []
     for d in q:
@@ -188,11 +196,33 @@ if 2 in exec_phase:
         if hero['id'] not in loaded_heroes:
             cur.execute('INSERT INTO hero_lookup VALUES (?,?,?)',[hero['id'],hero['localized_name'],hero['legs'],])
             info('Inserted ' + hero['localized_name'])
-    conn.commit()
+
 if 3 in exec_phase:
-    info('Phase 3 - Aggregating data into summary tables in DB')
+    info('Phase 3 - Appending info to data tables')
+    conn.commit()
 
 if 4 in exec_phase:
-    info('Phase 4 - Querying tables in DB')
+    info('Phase 4 - Aggregating data into summary tables in DB')
+    cur.execute('SELECT * FROM player_summary')
+    if len(cur.fetchall()) > 0:
+    	info('Flushing player summary table...')
+    	cur.execute('DELETE FROM player_summary')
+    	conn.commit()
+    info('Populating player_summary table...')
+    cur.execute('SELECT * FROM player_lookup')
+    players = cur.fetchall()
+    for player in players:
+    	cur.execute('SELECT AVG(kills), AVG(deaths), AVG(lh_and_d), AVG(gpm), AVG(tower_kills), AVG(roshan_kills), AVG(teamfight), \
+    		AVG(obs_placed), AVG(camps_stacked), AVG(rune_pickups), AVG(first_blood), AVG(stuns) FROM player_data WHERE account_id = ?', [player[0],])
+    	stats = cur.fetchall()
+    	for stat_pt in stats:
+	    	stat_dp = stat_pt[0]*points['kills'] + stat_pt[1]*points['deaths'] + 3 + stat_pt[2]*points['lh_and_d'] + stat_pt[3]*points['gpm'] + \
+	    			stat_pt[4]*points['tower_kills'] + stat_pt[5]*points['roshan_kills'] + stat_pt[6]*points['teamfight'] + stat_pt[7]*points['obs_placed'] + \
+	    			stat_pt[8]*points['camps_stacked'] + stat_pt[9]*points['rune_pickups'] + stat_pt[10]*float(points['first_blood']) + stat_pt[11]*points['stuns']
+	    	cur.execute('INSERT INTO player_summary VALUES (?,?)',[player[1], stat_dp])
+    conn.commit()
+
+if 5 in exec_phase:
+    info('Phase 5 - Querying tables in DB')
 
 conn.close()
