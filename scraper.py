@@ -15,7 +15,7 @@ db_file = 'stats.db'
 start_2018 = 1513728000
 od = 'https://api.opendota.com/api/'
 hdr = { 'User-Agent' : 'im a robot beepboop' }
-roles = {1 : 'Core', 2 : 'Support', 3 : 'Mid'}
+roles = {'1' : 'Core', '2' : 'Support', '4' : 'Mid'}
 points = {'kills' : 0.3, 'deaths' : -0.3, 'lh_and_d' : 0.003, 'gpm' : 0.002, 'tower_kills' : 1, 'roshan_kills' : 1, 'teamfight' : 3, \
 			'obs_placed' : 0.5, 'camps_stacked' : 0.5, 'rune_pickups' : 0.25, 'first_blood' : 4, 'stuns' : 0.05}# Deaths +3
 
@@ -219,9 +219,8 @@ if 4 in exec_phase:
 	    	stat_dp = stat_pt[0]*points['kills'] + stat_pt[1]*points['deaths'] + 3 + stat_pt[2]*points['lh_and_d'] + stat_pt[3]*points['gpm'] + \
 	    			stat_pt[4]*points['tower_kills'] + stat_pt[5]*points['roshan_kills'] + stat_pt[6]*points['teamfight'] + stat_pt[7]*points['obs_placed'] + \
 	    			stat_pt[8]*points['camps_stacked'] + stat_pt[9]*points['rune_pickups'] + stat_pt[10]*points['first_blood'] + stat_pt[11]*points['stuns']
-
-	    	cur.execute('INSERT INTO player_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)', \
-	    															[player[1], stat_dp, stat_pt[0]*points['kills'], stat_pt[1]*points['deaths'] + 3, \
+	    	cur.execute('INSERT INTO player_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', \
+	    															[player[1], roles[player[3]], stat_dp, stat_pt[0]*points['kills'], stat_pt[1]*points['deaths'] + 3, \
 	    															stat_pt[2]*points['lh_and_d'], stat_pt[3]*points['gpm'], stat_pt[4]*points['tower_kills'], \
 	    															stat_pt[5]*points['roshan_kills'], stat_pt[6]*points['teamfight'], stat_pt[7]*points['obs_placed'], \
 	    															stat_pt[8]*points['camps_stacked'], stat_pt[9]*points['rune_pickups'], stat_pt[10]*points['first_blood'], \
