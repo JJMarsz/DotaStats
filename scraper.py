@@ -6,7 +6,7 @@ import json
 
 # Control flags
 fail_error = 0
-log_lvl = 3 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
+log_lvl = 2 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
 exec_phase = [2] #ALL, 1, 2, 3, 4
 cache_data = 1
 db_file = 'stats.db'
@@ -15,6 +15,7 @@ db_file = 'stats.db'
 start_2018 = 1513728000
 od = 'https://api.opendota.com/api/'
 hdr = { 'User-Agent' : 'im a robot beepboop' }
+roles = {1 : 'Core', 2 : 'Support', 3 : 'Mid'}
 heroes = ['Abaddon', 'Alchemist', 'Axe', 'Beastmaster', 'Brewmaster', 'Bristleback', 'Centaur Warrunner', 'Chaos Knight', 
           'Clockwerk', 'Doom', 'Dragon Knight', 'Earth Spirit', 'Earthshaker', 'Elder Titan', 'Huskar', 'Io', 'Kunkka', 
           'Legion Commander', 'Lifestealer', 'Lycan', 'Magnus', 'Mars', 'Night Stalker', 'Omniknight', 'Phoenix', 'Pudge', 
@@ -82,15 +83,15 @@ def parseParams(params):
     return dic
     
 def getPlayer(l, acc_id):
-	for p in l:
-		if p['account_id'] == acc_id:
-			return p
+    for p in l:
+        if p['account_id'] == acc_id:
+            return p
 
 def extractColumn(q, i=0):
-	data = []
-	for d in q:
-		data.append(d[i])
-	return data
+    data = []
+    for d in q:
+        data.append(d[i])
+    return data
 
 #    
 # Main
@@ -129,18 +130,18 @@ if 1 in exec_phase:
 
                 # gather match stats
                 match_dp = [int(match_data['match_id']), int(match_data['series_id']), int(match_data['radiant_win']), int(match_data['dire_team_id']), \
-                            int(match_data['radiant_team_id']), int(match_data['duration']), match_data['league']['name'], int(match_data['start_time'])-start_2018]
+                            int(match_data['radiant_team_id']), int(match_data['duration']), match_data['league']['name'], int(match_data['start_time'])-start_2018, None]
                 debug(str(match_dp))
-                cur.execute('INSERT INTO match_data VALUES (?,?,?,?,?,?,?,?)', match_dp)
+                cur.execute('INSERT INTO match_data VALUES (?,?,?,?,?,?,?,?,?)', match_dp)
                 # gather player stats
                 for player in match_data['players']:
                     debug(str(player))
-                    player_dp = [int(player['account_id']), int(match_data['match_id']), int(player['hero_id']), int(player['kills']), int(player['deaths']), 
+                    player_dp = [int(player['account_id']), int(match_data['match_id']), int(player['hero_id']), int(player['isRadiant']), int(player['kills']), int(player['deaths']), 
                                 int(player['last_hits']) + int(player['denies']), int(player['gold_per_min']), int(player['tower_kills']), \
                                 int(player['roshan_kills']), float(player['teamfight_participation']), int(player['obs_placed']), \
                                 int(player['camps_stacked']), int(player['rune_pickups']), int(player['firstblood_claimed']), float(player['stuns'])]
                     debug(str(player_dp))
-                    cur.execute('INSERT INTO player_data VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', player_dp)
+                    cur.execute('INSERT INTO player_data VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', player_dp)
                 debug('Committing data points for match ' + str(match_data['match_id']))
             else:
                 r += 1
@@ -148,43 +149,54 @@ if 1 in exec_phase:
         info(str(r) + ' were redundant matches')
 
 if 2 in exec_phase:
-	info('Phase 2 - Verifying lookup integrity')
-	cur.execute('SELECT team_id from team_lookup')
-	teams = extractColumn(cur.fetchall())
-	for k in params.keys():
-		if int(k) in teams:
-			info('Already have team ' + k)
-		else:
-			team = apiCall('teams/' + k, key)
-			cur.execute('INSERT INTO team_lookup VALUES (?,?,?)',[k,team['name'].strip(),team['tag'].strip(),])
-			info('Found team ' + k)
-	conn.commit()
-	sys.exit()
-	for k in params.keys():
-		# verify team_lookup is filled
-		info('Verifying player_lookup')
-		cur.execute('SELECT account_id FROM player_lookup WHERE team_id = ?', [k,])
-		accounts = cur.fetchall()
-		if len(accounts) == 5:
-			info('Already have team ' + str(k) + '\'s players')
-		elif len(accounts) > 5:
-			players = ''
-			error('Team ' + str(k) + ' has more than 5 players:')
-			for a in accounts:
-				players += ' ' + str(a);
-			error(players)
-		else:
-			info('Gathering team ' + str(k) + '\'s players into player_lookup')
-			all_team_players = apiCall('/teams/' + str(k) + '/players', key)
-			for p in all_team_players:
-				if p['is_current_team_member']:
-					cur.execute('INSERT INTO player_lookup VALUES (?,?,?,?)', [p['account_id'],p['name'],k,getPlayer(pro_list,p['account_id'])['fantasy_role'],])
-	conn.commit()
+    info('Phase 2 - Generating lookups')
+    cur.execute('SELECT team_id from team_lookup')
+    teams = extractColumn(cur.fetchall())
+    # verify team_lookup is filled
+    info('Generating team_lookup')
+    for k in params.keys():
+        if int(k) in teams:
+            info('Already have team ' + k)
+        else:
+            team = apiCall('teams/' + k, key)
+            cur.execute('INSERT INTO team_lookup VALUES (?,?,?)',[k,team['name'].strip(),team['tag'].strip(),])
+            info('Found team ' + k)
+    conn.commit()
 
+    # verify player_lookup is filled
+    info('Generating player_lookup')
+    cur.execute('SELECT MAX(start_time), tl.team_id, md.match_id FROM match_data AS md, team_lookup AS tl WHERE md.dire_team_id = tl.team_id GROUP BY tl.team_id')
+    dire_data = cur.fetchall()
+    cur.execute('SELECT MAX(start_time), tl.team_id, md.match_id FROM match_data AS md, team_lookup AS tl WHERE md.radiant_team_id = tl.team_id GROUP BY tl.team_id')
+    radiant_data = cur.fetchall()
+    pros = apiCall('/proPlayers', key)
+    recent_matches = []
+    for i in range(len(radiant_data)):
+        if radiant_data[i][0] > dire_data[i][0]:
+            recent_matches.append([radiant_data[i][1],radiant_data[i][2], 1])
+        else:
+            recent_matches.append([dire_data[i][1],dire_data[i][2], 0])
+    for match in recent_matches:
+        cur.execute('SELECT account_id FROM player_lookup WHERE team_id = ?', [match[1],])
+        num_players = len(cur.fetchall())
+        if num_players == 0:
+            info('Gathering players for team ' + str(match[0]))
+            players = apiCall('/matches/' + str(match[1]), key)['players']
+            for player in players:
+                if match[2] == player['isRadiant']:
+                    role = getPlayer(pros, player['account_id'])['fantasy_role']
+                    cur.execute('INSERT INTO player_lookup VALUES (?,?,?,?)', [int(player['account_id']), player['name'], int(match[0]), role])
+        elif num_players > 6:
+            error('Team ' + str(match[1]) + ' has too many players (' + str(num_players) + ')')
+        else:
+            error('Team ' + str(match[1]) + ' isn\'t empty and has too little players (' + str(num_players) + ')')
+    conn.commit()
+
+    info('Generating hero_lookup')
 if 3 in exec_phase:
-	info('Phase 3 - Aggregating data into summary tables in DB')
+    info('Phase 3 - Aggregating data into summary tables in DB')
 
 if 4 in exec_phase:
-	info('Phase 4 - Querying tables in DB')
+    info('Phase 4 - Querying tables in DB')
 
 conn.close()
