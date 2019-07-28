@@ -7,7 +7,7 @@ import json
 # Control flags
 fail_error = 0
 log_lvl = 2 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
-exec_phase = [4] #ALL, 1, 2, 3, 4, 5
+exec_phase = [1,2,3,4] #ALL, 1, 2, 3, 4, 5
 cache_data = 1
 db_file = 'stats.db'
 
@@ -186,7 +186,7 @@ if 2 in exec_phase:
             info('Found team ' + k)
     conn.commit()
 
-    # verify player_lookup is filled
+    # create lookups for TI players
     info('Generating player_lookup')
     cur.execute('SELECT MAX(start_time), tl.team_id, md.match_id FROM match_data AS md, team_lookup AS tl WHERE md.dire_team_id = tl.team_id GROUP BY tl.team_id')
     dire_data = cur.fetchall()
@@ -221,13 +221,18 @@ if 2 in exec_phase:
     heroes = apiCall('/heroes', key)
     cur.execute('SELECT hero_id FROM hero_lookup')
     loaded_heroes = extractColumn(cur.fetchall())
-    for hero in heroes:
-        if hero['id'] not in loaded_heroes:
-            cur.execute('INSERT INTO hero_lookup VALUES (?,?,?)',[hero['id'],hero['localized_name'],hero['legs'],])
-            info('Inserted ' + hero['localized_name'])
+    if len(loaded_heroes) == len(heroes):
+    	info('Already have every hero')
+    else:
+	    for hero in heroes:
+	        if hero['id'] not in loaded_heroes:
+	            cur.execute('INSERT INTO hero_lookup VALUES (?,?,?)',[hero['id'],hero['localized_name'],hero['legs'],])
+	            info('Inserted ' + hero['localized_name'])
 
 if 3 in exec_phase:
-    info('Phase 3 - Appending info to data tables')
+    info('Phase 3 - Trimming and Appending data tables')
+    info('Deleting non-TI player\'s data...')
+    cur.execute('DELETE FROM player_data WHERE account_id NOT IN (SELECT account_id FROM player_lookup)')
     conn.commit()
 
 if 4 in exec_phase:
