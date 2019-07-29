@@ -257,7 +257,7 @@ if 4 in exec_phase:
             stats[0][i] = round(stats[0][i], 4)
         stat_dp = round(stat_dp, 4)
         cur.execute('INSERT INTO player_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', \
-                                                                [player[1], roles[player[3]], round((stat_dp*60)/stats[0][12], 4), stat_dp, stats[0][0]*points['kills'], stats[0][1]*points['deaths'] + 3, \
+                                                                [player[1], roles[player[3]], stat_dp, round((stat_dp*60)/stats[0][12], 4), stats[0][0]*points['kills'], stats[0][1]*points['deaths'] + 3, \
                                                                 stats[0][2]*points['lh_and_d'], stats[0][3]*points['gpm'], stats[0][4]*points['tower_kills'], \
                                                                 stats[0][5]*points['roshan_kills'], stats[0][6]*points['teamfight'], stats[0][7]*points['obs_placed'], \
                                                                 stats[0][8]*points['camps_stacked'], stats[0][9]*points['rune_pickups'], stats[0][10]*points['first_blood'], \
@@ -282,7 +282,7 @@ if 4 in exec_phase:
             stats[0][i] = round(stats[0][i], 4)
         stat_dp = round(stat_dp, 4)
         cur.execute('INSERT INTO role_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', \
-                                                                [roles[role], round((stat_dp*60)/stats[0][12], 4), stat_dp, stats[0][0]*points['kills'], stats[0][1]*points['deaths'] + 3, \
+                                                                [roles[role], stat_dp, round((stat_dp*60)/stats[0][12], 4), stats[0][0]*points['kills'], stats[0][1]*points['deaths'] + 3, \
                                                                 stats[0][2]*points['lh_and_d'], stats[0][3]*points['gpm'], stats[0][4]*points['tower_kills'], \
                                                                 stats[0][5]*points['roshan_kills'], stats[0][6]*points['teamfight'], stats[0][7]*points['obs_placed'], \
                                                                 stats[0][8]*points['camps_stacked'], stats[0][9]*points['rune_pickups'], stats[0][10]*points['first_blood'], \
@@ -309,7 +309,7 @@ if 4 in exec_phase:
             stats[0][i] = round(stats[0][i], 4)
         stat_dp = round(stat_dp, 4)
         cur.execute('INSERT INTO hero_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', \
-                                                                [hero[1], round((stat_dp*60)/stats[0][12], 4), stat_dp, stats[0][0]*points['kills'], stats[0][1]*points['deaths'] + 3, \
+                                                                [hero[1], stat_dp, round((stat_dp*60)/stats[0][12], 4), stats[0][0]*points['kills'], stats[0][1]*points['deaths'] + 3, \
                                                                 stats[0][2]*points['lh_and_d'], stats[0][3]*points['gpm'], stats[0][4]*points['tower_kills'], \
                                                                 stats[0][5]*points['roshan_kills'], stats[0][6]*points['teamfight'], stats[0][7]*points['obs_placed'], \
                                                                 stats[0][8]*points['camps_stacked'], stats[0][9]*points['rune_pickups'], stats[0][10]*points['first_blood'], \
