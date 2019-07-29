@@ -11,13 +11,11 @@ I am [unranked](https://imgur.com/joaSCPV), I have over [2000 hours](https://i.i
 
 **Data Source:**
 
-I spent way to much time trying to web scrape data from DotaBuff because I had to access each individual stats page for each match which resulted in me requesting from their servers WAYY too much (sorry). Im pretty sure they put me on throttle list nearing the end of my exploits, rightfully so. I ended up finding [OpenDota](https://www.opendota.com/) and started using their API to swiftly scrape all the data needed for this guide. Some issues lie with how certain teams have not been together for long and how other teams have barely played against any other TI teams, but this is the best I could do for now. I plan on possibly digging a bit deeper and gathering more individual player stats for those who have not been on their TI team Luckily, I'll be able to run my script and gather each day's data as swift as the wolves of Icewrack and post my findings before fantasy locks for the day.
+I spent way to much time trying to web scrape data from DotaBuff because I had to access each individual stats page for each match which resulted in me requesting from their servers WAYY too much (sorry). Im pretty sure they put me on throttle list nearing the end of my exploits, rightfully so. I ended up finding [OpenDota](https://www.opendota.com/) and started using their API to swiftly scrape all the data needed for this guide. Some issues lie with how certain teams have not been together for long and how other teams have barely played against any other TI teams, but this is the best I could do for now. I plan on possibly digging a bit deeper and gathering more individual player stats for those who have not been on their TI team. Luckily, I'll be able to run my script and gather each day's data as swift as the wolves of Icewrack and post my findings before fantasy locks(hopefully).
 
 **The Data:**
 
 So as I mentioned previously, there are a few players who have not been on their TI team for long and so their data set will be a bit limited. These [players](https://imgur.com/abauqWl) have less than 30 games stored in my database, so I suggest that you shy away from using any of their cards at least for day 1.
-
-I will be introducing a new metric I haven't seen anywhere named Fantasy Points per Minute (FPpM), to try to see if it is a valid tool to help predict the highest FP games/players. Essentially, you would take the two teams who are playing, take the median of their average playing time, and then figure out the projected fantasy points for each player based off of that.
 
 All of the displayed values will be fantasy points earned within a single game, so when selecting a card, always make sure that you choose a player who is playing the most matches that day.
 
@@ -30,12 +28,15 @@ All of the displayed values will be fantasy points earned within a single game, 
 *Support*:
 [Top 30](https://imgur.com/RleYk5J)
 
-As you can see, many players have strong FP per a game, but their FPpM is lower that that of neighboring players in the rankings. This is indicative of those players having longer games, but not actually being as fantasy point efficient as others. Once the matches are released, I can break down further FP predictions using the FPpM column.
+I added a few new stat columns that I have'nt seen anywhere before. First, FPpM is Fantasy Points per Minute and measures the fantasy point effeciency of the player. I also then added the win/loss averages of both regular per game FP and FPpM. As you can see, many players have strong FP per a game, but their FPpM is lower that that of neighboring players in the rankings. This is indicative of those players having longer games, but not actually being as fantasy point efficient as others. Once the matches are released, I can break down further FP predictions using these new columns.
 
 *Role Bonuses:*
 [Roles](https://imgur.com/mjkYrtP)
 
-On average, each role is pretty close, with the cores being weighed down by offlane players. Each 
+On average, each role is pretty close, with the cores being weighed down by offlane players. 
+
+**Conclusion:**
+
 
 
 
