@@ -7,7 +7,7 @@ import json
 # Control flags
 fail_error = 0
 log_lvl = 2 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
-exec_phase = [1,2,3,4] #ALL, 1, 2, 3, 4, 5
+exec_phase = [4] #ALL, 1, 2, 3, 4, 5
 cache_data = 1
 db_file = 'stats.db'
 
@@ -86,6 +86,11 @@ def extractColumn(q, i=0):
     for d in q:
         data.append(d[i])
     return data
+
+def toTime(sec):
+    s = (str(int(sec % 60)))
+    if len(s) == 1: s = '0' + s
+    return str(int(sec/60)) + ':' + s
 
 # populates a summary table for the specific outline
 #def summarize(table_name, query_tail, params, all_flag=1):
@@ -299,7 +304,8 @@ if 4 in exec_phase:
     heroes = cur.fetchall()
     for hero in heroes:
         cur.execute('SELECT AVG(kills), AVG(deaths), AVG(lh_and_d), AVG(gpm), AVG(tower_kills), AVG(roshan_kills), AVG(teamfight), \
-            AVG(obs_placed), AVG(camps_stacked), AVG(rune_pickups), AVG(first_blood), AVG(stuns), AVG(duration) FROM player_data AS pd, hero_lookup AS hl, match_data AS MD WHERE md.match_id = pd.match_id AND pd.hero_id = hl.hero_id AND pd.hero_id = ?', [hero[0],])
+            AVG(obs_placed), AVG(camps_stacked), AVG(rune_pickups), AVG(first_blood), AVG(stuns), AVG(duration) FROM player_data AS pd, hero_lookup AS hl, match_data AS md \
+                                                                                WHERE md.match_id = pd.match_id AND pd.hero_id = hl.hero_id AND pd.hero_id = ?', [hero[0],])
         stats = cur.fetchall()
         stat_dp = stats[0][0]*points['kills'] + stats[0][1]*points['deaths'] + 3 + stats[0][2]*points['lh_and_d'] + stats[0][3]*points['gpm'] + \
                 stats[0][4]*points['tower_kills'] + stats[0][5]*points['roshan_kills'] + stats[0][6]*points['teamfight'] + stats[0][7]*points['obs_placed'] + \
@@ -315,5 +321,27 @@ if 4 in exec_phase:
                                                                 stats[0][8]*points['camps_stacked'], stats[0][9]*points['rune_pickups'], stats[0][10]*points['first_blood'], \
                                                                 stats[0][11]*points['stuns']])
     conn.commit()
+
+    cur.execute('SELECT * FROM team_summary')
+    if len(cur.fetchall()) > 0:
+        info('Flushing team_summary table...')
+        cur.execute('DELETE FROM team_summary')
+        conn.commit()
+    info('Populating team_summary table...')
+    cur.execute('SELECT * FROM team_lookup')
+    teams = cur.fetchall()
+
+    for team in teams:
+        cur.execute('SELECT tl.name, AVG(duration) FROM player_lookup AS pl, match_data AS md, player_data AS pd, team_lookup AS tl WHERE md.match_id = pd.match_id \
+                                                                                                                        AND pl.account_id = pd.account_id \
+                                                                                                                        AND tl.team_id = pl.team_id \
+                                                                                                                        AND pl.team_id = ?', [team[0]])
+        stats_dp = cur.fetchall()
+
+
+        cur.execute('INSERT INTO team_summary VALUES (?,?)', [stats_dp[0][0], toTime(stats_dp[0][1])])
+
+    conn.commit()
+
 
 conn.close()
