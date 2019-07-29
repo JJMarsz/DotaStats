@@ -92,6 +92,36 @@ def toTime(sec):
     if len(s) == 1: s = '0' + s
     return str(int(sec/60)) + ':' + s
 
+def summaryHeader(table_name):
+    cur.execute('SELECT * FROM ' + table_name)
+    if len(cur.fetchall()) > 0:
+        info('Flushing ' + table_name + ' table...')
+        cur.execute('DELETE FROM ' + table_name)
+        conn.commit()
+    info('Populating '+ table_name + ' table...')
+
+def fetchAvgStats(queryTail, params):
+    cur.execute('SELECT AVG(kills), AVG(deaths), AVG(lh_and_d), AVG(gpm), AVG(tower_kills), AVG(roshan_kills), AVG(teamfight), \
+        AVG(obs_placed), AVG(camps_stacked), AVG(rune_pickups), AVG(first_blood), AVG(stuns), AVG(duration) FROM ' + queryTail, params)
+    return cur.fetchall()
+
+def getAvgDataPoint(stats):
+    stat_dp = stats[0][0]*points['kills'] + stats[0][1]*points['deaths'] + 3 + stats[0][2]*points['lh_and_d'] + stats[0][3]*points['gpm'] + \
+            stats[0][4]*points['tower_kills'] + stats[0][5]*points['roshan_kills'] + stats[0][6]*points['teamfight'] + stats[0][7]*points['obs_placed'] + \
+            stats[0][8]*points['camps_stacked'] + stats[0][9]*points['rune_pickups'] + stats[0][10]*points['first_blood'] + stats[0][11]*points['stuns']
+    stats[0] = list(stats[0])
+    for i in range(len(stats[0])):
+        stats[0][i] = round(stats[0][i], 4)
+    stat_dp = round(stat_dp, 4)
+    return stat_dp
+
+def flareData(stats):
+    return [stats[0][0]*points['kills'], stats[0][1]*points['deaths'] + 3, \
+    stats[0][2]*points['lh_and_d'], stats[0][3]*points['gpm'], stats[0][4]*points['tower_kills'], \
+    stats[0][5]*points['roshan_kills'], stats[0][6]*points['teamfight'], stats[0][7]*points['obs_placed'], \
+    stats[0][8]*points['camps_stacked'], stats[0][9]*points['rune_pickups'], stats[0][10]*points['first_blood'], \
+    stats[0][11]*points['stuns']]
+
 # populates a summary table for the specific outline
 #def summarize(table_name, query_tail, params, all_flag=1):
     # cur.execute('SELECT * FROM ' + table_name)
@@ -242,92 +272,43 @@ if 3 in exec_phase:
 
 if 4 in exec_phase:
     info('Phase 4 - Aggregating data into summary tables in DB')
-    cur.execute('SELECT * FROM player_summary')
-    if len(cur.fetchall()) > 0:
-        info('Flushing player summary table...')
-        cur.execute('DELETE FROM player_summary')
-        conn.commit()
-    info('Populating player_summary table...')
+    summaryHeader('player_summary')
     cur.execute('SELECT * FROM player_lookup')
     players = cur.fetchall()
     for player in players:
+        stats = fetchAvgStats('player_data AS pd, match_data AS md WHERE md.match_id = pd.match_id AND pd.account_id = ?', [player[0],])
+        stat_dp = getAvgDataPoint(stats)
+        
         cur.execute('SELECT AVG(kills), AVG(deaths), AVG(lh_and_d), AVG(gpm), AVG(tower_kills), AVG(roshan_kills), AVG(teamfight), \
-            AVG(obs_placed), AVG(camps_stacked), AVG(rune_pickups), AVG(first_blood), AVG(stuns), AVG(duration) FROM player_data AS pd, match_data AS md WHERE md.match_id = pd.match_id AND pd.account_id = ?', [player[0],])
-        stats = cur.fetchall()
-        stat_dp = stats[0][0]*points['kills'] + stats[0][1]*points['deaths'] + 3 + stats[0][2]*points['lh_and_d'] + stats[0][3]*points['gpm'] + \
-                stats[0][4]*points['tower_kills'] + stats[0][5]*points['roshan_kills'] + stats[0][6]*points['teamfight'] + stats[0][7]*points['obs_placed'] + \
-                stats[0][8]*points['camps_stacked'] + stats[0][9]*points['rune_pickups'] + stats[0][10]*points['first_blood'] + stats[0][11]*points['stuns']
-        stats[0] = list(stats[0])
-        for i in range(len(stats[0])):
-            stats[0][i] = round(stats[0][i], 4)
-        stat_dp = round(stat_dp, 4)
+            AVG(obs_placed), AVG(camps_stacked), AVG(rune_pickups), AVG(first_blood), AVG(stuns), AVG(duration) \
+            FROM player_data AS pd, match_data AS md, team_lookup AS tl, player_lookup AS pl \
+            WHERE ((md.radiant_win = 1 and md.radiant_team_id = tl.team_id) OR (md.radiant_win = 0 and md.dire_team_id = tl.team_id)) \
+            AND md.match_id = pd.match_id AND tl.team_id = pl.team_id AND pd.account_id = pl.account_id AND pd.account_id = ?', [player[0],])
+        wins = cur.fetchall()
+
         cur.execute('INSERT INTO player_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', \
-                                                                [player[1], roles[player[3]], stat_dp, round((stat_dp*60)/stats[0][12], 4), stats[0][0]*points['kills'], stats[0][1]*points['deaths'] + 3, \
-                                                                stats[0][2]*points['lh_and_d'], stats[0][3]*points['gpm'], stats[0][4]*points['tower_kills'], \
-                                                                stats[0][5]*points['roshan_kills'], stats[0][6]*points['teamfight'], stats[0][7]*points['obs_placed'], \
-                                                                stats[0][8]*points['camps_stacked'], stats[0][9]*points['rune_pickups'], stats[0][10]*points['first_blood'], \
-                                                                stats[0][11]*points['stuns']])
+                                                                [player[1], roles[player[3]], stat_dp, round((stat_dp*60)/stats[0][12], 4)] + flareData(stats))
     conn.commit()
 
-    cur.execute('SELECT * FROM role_summary')
-    if len(cur.fetchall()) > 0:
-        info('Flushing role_summary table...')
-        cur.execute('DELETE FROM role_summary')
-        conn.commit()
-    info('Populating role_summary table...')
+    summaryHeader('role_summary')
     for role in roles.keys():
-        cur.execute('SELECT AVG(kills), AVG(deaths), AVG(lh_and_d), AVG(gpm), AVG(tower_kills), AVG(roshan_kills), AVG(teamfight), \
-            AVG(obs_placed), AVG(camps_stacked), AVG(rune_pickups), AVG(first_blood), AVG(stuns), AVG(duration) FROM player_data AS pd, match_data AS md, player_lookup AS pl WHERE md.match_id = pd.match_id AND pd.account_id =  pl.account_id AND role = ?', [role,])
-        stats = cur.fetchall()
-        stat_dp = stats[0][0]*points['kills'] + stats[0][1]*points['deaths'] + 3 + stats[0][2]*points['lh_and_d'] + stats[0][3]*points['gpm'] + \
-                stats[0][4]*points['tower_kills'] + stats[0][5]*points['roshan_kills'] + stats[0][6]*points['teamfight'] + stats[0][7]*points['obs_placed'] + \
-                stats[0][8]*points['camps_stacked'] + stats[0][9]*points['rune_pickups'] + stats[0][10]*points['first_blood'] + stats[0][11]*points['stuns']
-        stats[0] = list(stats[0])
-        for i in range(len(stats[0])):
-            stats[0][i] = round(stats[0][i], 4)
-        stat_dp = round(stat_dp, 4)
+        stats = fetchAvgStats('player_data AS pd, match_data AS md, player_lookup AS pl WHERE md.match_id = pd.match_id AND pd.account_id =  pl.account_id AND role = ?', [role,])
+        stat_dp = getAvgDataPoint(stats)
         cur.execute('INSERT INTO role_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', \
-                                                                [roles[role], stat_dp, round((stat_dp*60)/stats[0][12], 4), stats[0][0]*points['kills'], stats[0][1]*points['deaths'] + 3, \
-                                                                stats[0][2]*points['lh_and_d'], stats[0][3]*points['gpm'], stats[0][4]*points['tower_kills'], \
-                                                                stats[0][5]*points['roshan_kills'], stats[0][6]*points['teamfight'], stats[0][7]*points['obs_placed'], \
-                                                                stats[0][8]*points['camps_stacked'], stats[0][9]*points['rune_pickups'], stats[0][10]*points['first_blood'], \
-                                                                stats[0][11]*points['stuns']])
+                                                                [roles[role], stat_dp, round((stat_dp*60)/stats[0][12], 4)] + flareData(stats))
     conn.commit()
 
-    cur.execute('SELECT * FROM hero_summary')
-    if len(cur.fetchall()) > 0:
-        info('Flushing hero_summary table...')
-        cur.execute('DELETE FROM hero_summary')
-        conn.commit()
-    info('Populating hero_summary table...')
+    summaryHeader('hero_summary')
     cur.execute('SELECT * FROM hero_lookup')
     heroes = cur.fetchall()
     for hero in heroes:
-        cur.execute('SELECT AVG(kills), AVG(deaths), AVG(lh_and_d), AVG(gpm), AVG(tower_kills), AVG(roshan_kills), AVG(teamfight), \
-            AVG(obs_placed), AVG(camps_stacked), AVG(rune_pickups), AVG(first_blood), AVG(stuns), AVG(duration) FROM player_data AS pd, hero_lookup AS hl, match_data AS md \
-                                                                                WHERE md.match_id = pd.match_id AND pd.hero_id = hl.hero_id AND pd.hero_id = ?', [hero[0],])
-        stats = cur.fetchall()
-        stat_dp = stats[0][0]*points['kills'] + stats[0][1]*points['deaths'] + 3 + stats[0][2]*points['lh_and_d'] + stats[0][3]*points['gpm'] + \
-                stats[0][4]*points['tower_kills'] + stats[0][5]*points['roshan_kills'] + stats[0][6]*points['teamfight'] + stats[0][7]*points['obs_placed'] + \
-                stats[0][8]*points['camps_stacked'] + stats[0][9]*points['rune_pickups'] + stats[0][10]*points['first_blood'] + stats[0][11]*points['stuns']
-        stats[0] = list(stats[0])
-        for i in range(len(stats[0])):
-            stats[0][i] = round(stats[0][i], 4)
-        stat_dp = round(stat_dp, 4)
+        stats = fetchAvgStats('player_data AS pd, hero_lookup AS hl, match_data AS md WHERE md.match_id = pd.match_id AND pd.hero_id = hl.hero_id AND pd.hero_id = ?', [hero[0],])
+        stat_dp = getAvgDataPoint(stats)
         cur.execute('INSERT INTO hero_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', \
-                                                                [hero[1], stat_dp, round((stat_dp*60)/stats[0][12], 4), stats[0][0]*points['kills'], stats[0][1]*points['deaths'] + 3, \
-                                                                stats[0][2]*points['lh_and_d'], stats[0][3]*points['gpm'], stats[0][4]*points['tower_kills'], \
-                                                                stats[0][5]*points['roshan_kills'], stats[0][6]*points['teamfight'], stats[0][7]*points['obs_placed'], \
-                                                                stats[0][8]*points['camps_stacked'], stats[0][9]*points['rune_pickups'], stats[0][10]*points['first_blood'], \
-                                                                stats[0][11]*points['stuns']])
+                                                                [hero[1], stat_dp, round((stat_dp*60)/stats[0][12], 4)] + flareData(stats))
     conn.commit()
 
-    cur.execute('SELECT * FROM team_summary')
-    if len(cur.fetchall()) > 0:
-        info('Flushing team_summary table...')
-        cur.execute('DELETE FROM team_summary')
-        conn.commit()
-    info('Populating team_summary table...')
+    summaryHeader('team_summary')
     cur.execute('SELECT * FROM team_lookup')
     teams = cur.fetchall()
 
@@ -337,8 +318,6 @@ if 4 in exec_phase:
                                                                                                                         AND tl.team_id = pl.team_id \
                                                                                                                         AND pl.team_id = ?', [team[0]])
         stats_dp = cur.fetchall()
-
-
         cur.execute('INSERT INTO team_summary VALUES (?,?)', [stats_dp[0][0], toTime(stats_dp[0][1])])
 
     conn.commit()
