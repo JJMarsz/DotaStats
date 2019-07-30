@@ -7,7 +7,7 @@ import json
 # Control flags
 fail_error = 0
 log_lvl = 2 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
-exec_phase = [4] #ALL, 1, 2, 3, 4, 5
+exec_phase = [3,4] #ALL, 1, 2, 3, 4, 5
 cache_data = 1
 db_file = 'stats.db'
 
@@ -111,8 +111,8 @@ def getAvgDataPoint(stats):
             stats[0][8]*points['camps_stacked'] + stats[0][9]*points['rune_pickups'] + stats[0][10]*points['first_blood'] + stats[0][11]*points['stuns']
     stats[0] = list(stats[0])
     for i in range(len(stats[0])):
-        stats[0][i] = round(stats[0][i], 2)
-    stat_dp = round(stat_dp, 2)
+        stats[0][i] = round(stats[0][i], 4)
+    stat_dp = round(stat_dp, 4)
     return stat_dp
 
 def flareData(stats):
@@ -123,7 +123,7 @@ def flareData(stats):
     stats[0][11]*points['stuns']]
 
 def fppm(fp, duration):
-	return round((fp*60)/duration, 2)
+    return round((fp*60)/duration, 4)
 #    
 # Main
 #
@@ -203,10 +203,8 @@ if 2 in exec_phase:
     pros = apiCall('/proPlayers', key)
     recent_matches = []
     for i in range(len(radiant_data)):
-        if radiant_data[i][0] > dire_data[i][0]:
-            recent_matches.append([radiant_data[i][1],radiant_data[i][2], 1])
-        else:
-            recent_matches.append([dire_data[i][1],dire_data[i][2], 0])
+        if radiant_data[i][0] > dire_data[i][0]: recent_matches.append([radiant_data[i][1],radiant_data[i][2], 1])
+        else: recent_matches.append([dire_data[i][1],dire_data[i][2], 0])
     for match in recent_matches:
         cur.execute('SELECT account_id FROM player_lookup WHERE team_id = ?', [match[0],])
         num_players = len(cur.fetchall())
@@ -230,12 +228,12 @@ if 2 in exec_phase:
     cur.execute('SELECT hero_id FROM hero_lookup')
     loaded_heroes = extractColumn(cur.fetchall())
     if len(loaded_heroes) == len(heroes):
-    	info('Already have every hero')
+        info('Already have every hero')
     else:
-	    for hero in heroes:
-	        if hero['id'] not in loaded_heroes:
-	            cur.execute('INSERT INTO hero_lookup VALUES (?,?,?)',[hero['id'],hero['localized_name'],hero['legs'],])
-	            info('Inserted ' + hero['localized_name'])
+        for hero in heroes:
+            if hero['id'] not in loaded_heroes:
+                cur.execute('INSERT INTO hero_lookup VALUES (?,?,?)',[hero['id'],hero['localized_name'],hero['legs'],])
+                info('Inserted ' + hero['localized_name'])
 
 if 3 in exec_phase:
     info('Phase 3 - Trimming and Appending data tables')
