@@ -111,8 +111,8 @@ def getAvgDataPoint(stats):
             stats[0][8]*points['camps_stacked'] + stats[0][9]*points['rune_pickups'] + stats[0][10]*points['first_blood'] + stats[0][11]*points['stuns']
     stats[0] = list(stats[0])
     for i in range(len(stats[0])):
-        stats[0][i] = round(stats[0][i], 4)
-    stat_dp = round(stat_dp, 4)
+        stats[0][i] = round(stats[0][i], 2)
+    stat_dp = round(stat_dp, 2)
     return stat_dp
 
 def flareData(stats):
@@ -122,6 +122,8 @@ def flareData(stats):
     stats[0][8]*points['camps_stacked'], stats[0][9]*points['rune_pickups'], stats[0][10]*points['first_blood'], \
     stats[0][11]*points['stuns']]
 
+def fppm(fp, duration):
+	return round((fp*60)/duration, 2)
 #    
 # Main
 #
@@ -259,15 +261,14 @@ if 4 in exec_phase:
         loss_dp = getAvgDataPoint(losses)
 
         cur.execute('INSERT INTO player_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [player[1], roles[player[3]], stat_dp, win_dp, loss_dp, \
-            round((stat_dp*60)/stats[0][12], 4), round((win_dp*60)/wins[0][12], 4), round((loss_dp*60)/losses[0][12], 4)] + flareData(stats))
+            fppm(stat_dp, stats[0][12]), fppm(win_dp, wins[0][12]), fppm(loss_dp, losses[0][12])] + flareData(stats))
     conn.commit()
 
     summaryHeader('role_summary')
     for role in roles.keys():
         stats = fetchAvgStats('player_data AS pd, match_data AS md, player_lookup AS pl WHERE md.match_id = pd.match_id AND pd.account_id =  pl.account_id AND role = ?', [role,])
         stat_dp = getAvgDataPoint(stats)
-        cur.execute('INSERT INTO role_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', \
-                                                                [roles[role], stat_dp, round((stat_dp*60)/stats[0][12], 4)] + flareData(stats))
+        cur.execute('INSERT INTO role_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [roles[role], stat_dp, fppm(stat_dp, stats[0][12])] + flareData(stats))
     conn.commit()
 
     summaryHeader('hero_summary')
@@ -276,8 +277,7 @@ if 4 in exec_phase:
     for hero in heroes:
         stats = fetchAvgStats('player_data AS pd, hero_lookup AS hl, match_data AS md WHERE md.match_id = pd.match_id AND pd.hero_id = hl.hero_id AND pd.hero_id = ?', [hero[0],])
         stat_dp = getAvgDataPoint(stats)
-        cur.execute('INSERT INTO hero_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', \
-                                                                [hero[1], stat_dp, round((stat_dp*60)/stats[0][12], 4)] + flareData(stats))
+        cur.execute('INSERT INTO hero_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [hero[1], stat_dp, fppm(stat_dp, stats[0][12])] + flareData(stats))
     conn.commit()
 
     summaryHeader('team_summary')
@@ -286,9 +286,7 @@ if 4 in exec_phase:
 
     for team in teams:
         cur.execute('SELECT tl.name, AVG(duration) FROM player_lookup AS pl, match_data AS md, player_data AS pd, team_lookup AS tl WHERE md.match_id = pd.match_id \
-                                                                                                                        AND pl.account_id = pd.account_id \
-                                                                                                                        AND tl.team_id = pl.team_id \
-                                                                                                                        AND pl.team_id = ?', [team[0]])
+                                                                        AND pl.account_id = pd.account_id AND tl.team_id = pl.team_id AND pl.team_id = ?', [team[0]])
         stats_dp = cur.fetchall()
         cur.execute('INSERT INTO team_summary VALUES (?,?)', [stats_dp[0][0], toTime(stats_dp[0][1])])
 
