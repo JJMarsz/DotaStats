@@ -4,20 +4,19 @@
 
 Hello there /r/DotA2. I am here to present you a statistical overview of the TI9 fantasy challenge. With /u/SavageSkillet opting out of doing his guide this year, I figured that I could give it a shot. I won't be able to bring as much pizzazz as him, but I hope the data I have gathered is useful to you.
 
-
  **Who am I:**
 
-I am [unranked](https://imgur.com/joaSCPV), I have over [2000 hours](https://i.imgur.com/FbD3vHT.png) in Dota, and I have been on/off playing Dota since I got the [beta key](https://i.imgur.com/7DndoUb.png). Professional Dota will always have a special place in my heart as I have spent many days watching tournaments/streams . Funnily enough, my first experience with professional Dota was when I tuned into twitch for TI2's Grand Finals about 5 minutes before [The Play](https://www.youtube.com/watch?v=tDaJes0T1Ig). Fantasy wise, I was able to get to the 95th percentile at TI7 and 99th percentile at TI8, mostly in part to /u/SavageSkillet's guide. 
+I am [unranked](https://i.imgur.com/joaSCPV.png), I have over [2000 hours](https://i.imgur.com/FbD3vHT.png) in Dota, and I have been on/off playing Dota since I got the [beta key](https://i.imgur.com/7DndoUb.png). Professional Dota will always have a special place in my heart as I have spent many days watching tournaments/streams. Funnily enough, my first experience with professional Dota was when I tuned into twitch for TI2's Grand Finals about 5 minutes before [The Play](https://www.youtube.com/watch?v=tDaJes0T1Ig). Fantasy wise, I was able to land in the 95th percentile during TI7's challenge and 99th percentile at TI8's, mostly in part to /u/SavageSkillet's guides. 
 
 **Data Source:**
 
-I spent way to much time trying to web scrape data from DotaBuff because I had to access each individual stats page for each match which resulted in me requesting from their servers WAYY too much (sorry). Im pretty sure they put me on throttle list nearing the end of my exploits, and rightfully so. I ended up finding [OpenDota](https://www.opendota.com/) and started using their API to quickly scrape all the data needed for this guide. Some issues lie with how certain teams have not been together for long and how other teams have barely played against any other TI teams, but this is the best I could do for now pre-TI9. Luckily, I'll be able to run my script and gather each day's data as swift as the wolves of Icewrack and post my findings before fantasy locks at 8pm CST.
+I spent way to much time trying to web scrape data from DotaBuff. I had to access each individual stats page for every match/series which resulted in me requesting from their servers WAYY too much (sorry). Im pretty sure they put me on throttle list nearing the end of my exploits, and rightfully so. I ended up finding [OpenDota](https://www.opendota.com/) and started using their API to quickly scrape all the data needed for this guide. Some issues lie with how certain teams have not been together for long and how other teams have barely played against any other TI teams, but this is the best I could do for now pre-TI9. Luckily, I'll be able to run my script and gather each day's data as swift as the wolves of Icewrack and post my findings before fantasy locks at 8pm CST.
 
 **The Data:**
 
-So as I mentioned previously, there are a few players who have not been on their TI team for long and so their data set will be a bit limited. For these [players](https://imgur.com/Z6O0c2p), I have less than 30 games of data, so I suggest that you shy away from using any of their cards at least for day 1.
+So as I mentioned previously, there are a few players who have not been on their TI team for long and so their data set will be a bit limited. For these [players](https://imgur.com/Z6O0c2p), I have less than 30 games of data, so I suggest that you shy away from using any of their cards at least for day 1. The data points that I have gathered here come from the last 5 tournaments that these teams have played, excluding Infamous and Chaos where I obtained 4 and 1 respectively. 
 
-All of the displayed values (excluding FPpM) will be fantasy points earned within a single game on average. When selecting who to play for each day, always select those who will play the most games and players who are on teams who play [longer.](https://imgur.com/HYSiDfl)
+All of the displayed values (excluding FPpM) will be fantasy points earned within a single game on average. When selecting who to play for each day, always select those who will play the most games and players who are on teams who play [longer](https://i.imgur.com/HYSiDfl.png) before you select the best FP players.
 
 *[Core Top 25](https://imgur.com/LGGbjbd)*
 
@@ -27,9 +26,9 @@ All of the displayed values (excluding FPpM) will be fantasy points earned withi
 
 I added a few new stat columns that I haven't seen anywhere before. First, FPpM is Fantasy Points per Minute and measures the fantasy point efficiency of the player. I also added the win/loss averages of both regular per game FP and FPpM. As you can see, many players have strong FP per a game, but their FPpM is lower than that of neighboring players in the rankings. This is indicative of those players having longer games, but not actually being as fantasy point efficient as others. The win/loss averages help see the consistency of players along with how their averages lean. Once the matches are released, I can break down further FP predictions using these new columns.
 
-*[Role Bonuses](https://imgur.com/uNu5GI2)*
+*[Role Bonuses](https://i.imgur.com/uNu5GI2.png)*
 
-On average, each role is pretty close, with the cores being weighed down by offlane players. Each role favors different sets of bonuses on average. But these stats vary from player to player due to different play styles, so below are the AVERAGE best bonuses per a role. For specific FP for each stat from each player, you can read the statsheet linked at the top and bottom of this post. But in reality, card bonuses aren't necessary to make top 10%, as long as you pick the right player, you'll do fine.
+On average, each role is pretty close, with the cores being weighed down by offlane players dramatically. Each role favors different sets of bonuses on average. But these stats vary from player to player due to different play styles, so below are the AVERAGE best bonuses per a role. For specific FP for each category from each player, you can read the statsheet linked at the top and bottom of this post. Card bonuses are only really necessary to push for the leader board, as you can easily make top 10% by just using commons and educated picks.
 
 Core: Teamfight Participation, Deaths, Kills, Tower Kills, Stuns/Rune Pickups
 

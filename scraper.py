@@ -7,7 +7,7 @@ import json
 # Control flags
 fail_error = 0
 log_lvl = 2 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
-exec_phase = [3,4] #ALL, 1, 2, 3, 4, 5
+exec_phase = [4] #ALL, 1, 2, 3, 4, 5
 cache_data = 1
 db_file = 'stats.db'
 
@@ -275,7 +275,13 @@ if 4 in exec_phase:
     for hero in heroes:
         stats = fetchAvgStats('player_data AS pd, hero_lookup AS hl, match_data AS md WHERE md.match_id = pd.match_id AND pd.hero_id = hl.hero_id AND pd.hero_id = ?', [hero[0],])
         stat_dp = getAvgDataPoint(stats)
-        cur.execute('INSERT INTO hero_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [hero[1], stat_dp, fppm(stat_dp, stats[0][12])] + flareData(stats))
+        role_stats = []
+        for role in roles.keys():
+            cur.execute('SELECT COUNT(pl.role) FROM player_data AS pd, player_lookup AS pl WHERE pd.account_id = pl.account_id AND pl.role = ? AND pd.hero_id = ?', [role, hero[0],])
+            role_stat = cur.fetchall()
+            role_stats.append(role_stat[0][0])
+        total = role_stats[0] + role_stats[1] + role_stats[2]
+        cur.execute('INSERT INTO hero_summary VALUES (?,?,?,?,?,?)', [hero[1], stat_dp, fppm(stat_dp, stats[0][12]), role_stats[0]/total, role_stats[2]/total, role_stats[1]/total])
     conn.commit()
 
     summaryHeader('team_summary')
@@ -287,6 +293,17 @@ if 4 in exec_phase:
                                                                         AND pl.account_id = pd.account_id AND tl.team_id = pl.team_id AND pl.team_id = ?', [team[0]])
         stats_dp = cur.fetchall()
         cur.execute('INSERT INTO team_summary VALUES (?,?)', [stats_dp[0][0], toTime(stats_dp[0][1])])
+
+    conn.commit()
+
+    summaryHeader('leg_summary')
+    for i in [0,2,4,6,8]:
+        for role in roles.keys():
+            stats = fetchAvgStats('player_data AS pd, hero_lookup AS hl, player_lookup AS pl, match_data AS md WHERE pl.account_id = pd.account_id AND \
+                    md.match_id = pd.match_id AND pd.hero_id = hl.hero_id AND hl.legs = ? AND pl.role = ?', [i, role,])
+            if stats[0][0] is not None:
+                stat_dp = getAvgDataPoint(stats)
+                cur.execute('INSERT INTO leg_summary VALUES (?,?,?,?)', [roles[role], i, stats_dp[0][0], fppm(stat_dp, stats[0][12])])
 
     conn.commit()
 
