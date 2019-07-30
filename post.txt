@@ -2,12 +2,12 @@
 
 **Introduction:**
 
-Hello there /r/DotA2. I am here to present you a statistical overview of the TI9 fantasy challenge due to /u/SavageSkillet opting out of doing his guide this year. I won't be able to bring as much pizzazz as him, but I hope the data I have gathered is useful to you.
+Hello there /r/DotA2. I am here to present you a statistical overview of the TI9 fantasy challenge. With /u/SavageSkillet opting out of doing his guide this year, I figured that I could give it a shot. I won't be able to bring as much pizzazz as him, but I hope the data I have gathered is useful to you.
 
 
  **Who am I:**
 
-I am [unranked](https://imgur.com/joaSCPV), I have over [2000 hours](https://i.imgur.com/FbD3vHT.png) in Dota, and I have been on/off playing Dota since I got the [beta key](https://i.imgur.com/7DndoUb.png). Professional Dota will always have a special place in my heart as I have spent many weekends watching tournaments/streams and getting flamed by my teammates. Funnily enough, my first experience with professional Dota was when I tuned into twitch for TI2's Grand Finals about 5 minutes before [The Play](https://www.youtube.com/watch?v=tDaJes0T1Ig). Fantasy wise, I was able to get to the 95th percentile at TI7 and 99th percentile at TI8, mostly in part to /u/SavageSkillet's guide. 
+I am [unranked](https://imgur.com/joaSCPV), I have over [2000 hours](https://i.imgur.com/FbD3vHT.png) in Dota, and I have been on/off playing Dota since I got the [beta key](https://i.imgur.com/7DndoUb.png). Professional Dota will always have a special place in my heart as I have spent many days watching tournaments/streams . Funnily enough, my first experience with professional Dota was when I tuned into twitch for TI2's Grand Finals about 5 minutes before [The Play](https://www.youtube.com/watch?v=tDaJes0T1Ig). Fantasy wise, I was able to get to the 95th percentile at TI7 and 99th percentile at TI8, mostly in part to /u/SavageSkillet's guide. 
 
 **Data Source:**
 
@@ -25,7 +25,7 @@ All of the displayed values (excluding FPpM) will be fantasy points earned withi
 
 *[Support Top 25](https://imgur.com/F3VUYdF)*
 
-I added a few new stat columns that I haven't seen anywhere before. First, FPpM is Fantasy Points per Minute and measures the fantasy point efficiency of the player. I also then added the win/loss averages of both regular per game FP and FPpM. As you can see, many players have strong FP per a game, but their FPpM is lower than that of neighboring players in the rankings. This is indicative of those players having longer games, but not actually being as fantasy point efficient as others. The win/loss averages help see the consistency of players along with how their averages lean. Once the matches are released, I can break down further FP predictions using these new columns.
+I added a few new stat columns that I haven't seen anywhere before. First, FPpM is Fantasy Points per Minute and measures the fantasy point efficiency of the player. I also added the win/loss averages of both regular per game FP and FPpM. As you can see, many players have strong FP per a game, but their FPpM is lower than that of neighboring players in the rankings. This is indicative of those players having longer games, but not actually being as fantasy point efficient as others. The win/loss averages help see the consistency of players along with how their averages lean. Once the matches are released, I can break down further FP predictions using these new columns.
 
 *[Role Bonuses](https://imgur.com/uNu5GI2)*
 
@@ -39,7 +39,9 @@ Support: Obs Placed, Teamfight Participation, Stuns, Deaths, Rune Pickups
 
 **Conclusion:**
 
-I had a lot of fun gathering these stats and whatnot. I am working on making a ranking system for the cards to pick using some of these new metrics and see if they are even worthwhile to use. Depending on how well you all like this post I may make a follow up with a deeper dive into each team/player, most efficient FP heroes, and etc. If there are any other statistics that you would like to see, please let me know as I have a database filled with data just waiting to be queried. For future stats and information, I will populate the linked folder to keep everything all together.
+I had a lot of fun gathering these stats and whatnot. I am working on making a ranking system for the cards to pick using some of these new metrics and see if they are even worthwhile to use. Depending on this post's response, I may make a follow up with a deeper dive into each team/player, most efficient FP heroes, and etc. If there are any other statistics that you would like to see, please let me know as I have a database filled with data just waiting to be queried. For future stats and information, I will populate the linked folder to keep everything all together. 
+
+Thanks for reading this post! Best of luck in the challenge!
 
 
 **TLDR:** [TI9 Fantasy Stats](https://drive.google.com/open?id=1N3cIWGDwqLEtrLnu04zWSfyMQw2gJjpu)
