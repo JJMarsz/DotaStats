@@ -364,10 +364,9 @@ if 4 in exec_phase:
 #                    md.match_id = pd.match_id AND pd.hero_id = hl.hero_id AND hl.legs = ? AND pl.role = ?', [i, role,])
 #            if stats[0][0] is not None:
 #                stat_dp = getAvgDataPoint(stats)
-#                cur.execute('INSERT INTO leg_summary VALUES (?,?,?,?)', [roles[role], i, stats_dp[0][0], fppm('avg')])
+#                cur.execute('INSERT INTO leg_summary VALUES (?,?,?,?)', [roles[role], i, stats_dp, fppm('avg')])
 #
 #    conn.commit()
-
 
 if 5 in exec_phase:
     info('Phase 5 - Generating rankings')
@@ -381,5 +380,7 @@ if 6 in exec_phase:
 
 if 7 in exec_phase:
     info('Phase 7 - Assesing previous selections')
+
+info('Shutting down...')
 
 conn.close()
