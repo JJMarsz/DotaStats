@@ -7,7 +7,7 @@ import json
 # Control flags
 fail_error = 0
 log_lvl = 2 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
-exec_phase = [4] #ALL, 1, 2, 3, 4, 5
+exec_phase = [5] #ALL, 1, 2, 3, 4, 5
 cache_data = 1
 db_file = 'stats.db'
 
@@ -18,6 +18,7 @@ hdr = { 'User-Agent' : 'im a robot beepboop' }
 roles = {'1' : 'Core', '2' : 'Support', '4' : 'Mid'}
 points = {'kills' : 0.3, 'deaths' : -0.3, 'lh_and_d' : 0.003, 'gpm' : 0.002, 'tower_kills' : 1, 'roshan_kills' : 1, 'teamfight' : 3, \
             'obs_placed' : 0.5, 'camps_stacked' : 0.5, 'rune_pickups' : 0.25, 'first_blood' : 4, 'stuns' : 0.05}# Deaths +3
+best_of = {'1':1, '2':2, '3':2, '5':3}
 
 #
 # Subroutines
@@ -74,6 +75,31 @@ def parseParams(params):
         params = params[params.find('\n')+1:]
     return dic
     
+# parse next day matches
+# Format:
+# team_tag1 team_tag2 (BO#)
+# team_tag1 team_tag2 (BO#)
+# team_tag1 team_tag2 (BO#)
+# ...
+# (MUST HAVE NEW LINE AT END)
+def parseMatches(match_file):
+    cur.execute('SELECT * FROM team_lookup')
+    teams = cur.fetchall()
+    tags = extractColumn(teams, 2)
+    dic = {}
+    for match in match_file:
+        bo = best_of[match[match.rfind(' ')+1:len(match)-1]]
+        if match[:match.find(' ')] in tags:
+            if match[:match.find(' ')] not in dic.keys(): dic[match[:match.find(' ')]] = bo
+            else: dic[match[:match.find(' ')]] += bo
+        else: error('Team tag ' + match[:match.find(' ')] + ' is not a valid TI team')
+        if match[match.find(' ')+1:match.rfind(' ')] in tags:
+            if match[match.find(' ')+1:match.rfind(' ')] not in dic.keys(): dic[match[match.find(' ')+1:match.rfind(' ')]] = bo
+            else: dic[match[match.find(' ')+1:match.rfind(' ')]] += bo
+        else: error('Team tag ' + match[match.find(' ')+1:match.rfind(' ')] + ' is not a valid TI team')
+        match = match[match.find('\n')+1:]
+    return dic
+
 # Given a list of player dictionaries, returns dict with given id
 def getPlayer(l, acc_id):
     for p in l:
@@ -122,18 +148,52 @@ def flareData(stats):
     stats[0][8]*points['camps_stacked'], stats[0][9]*points['rune_pickups'], stats[0][10]*points['first_blood'], \
     stats[0][11]*points['stuns']]
 
-def fppm(fp, duration):
-    return round((fp*60)/duration, 4)
+def fp(stat):
+    return stat[0]*points['kills'] + stat[1]*points['deaths'] + 3 + stat[2]*points['lh_and_d'] + stat[3]*points['gpm'] + \
+            stat[4]*points['tower_kills'] + stat[5]*points['roshan_kills'] + stat[6]*points['teamfight'] + stat[7]*points['obs_placed'] + \
+            stat[8]*points['camps_stacked'] + stat[9]*points['rune_pickups'] + stat[10]*points['first_blood'] + stat[11]*points['stuns']
+
+
+def fppm(ver, param):
+    if ver == 'avg':
+        cur.execute('SELECT kills, deaths, lh_and_d, gpm, tower_kills, roshan_kills, teamfight, obs_placed, camps_stacked, rune_pickups, \
+            first_blood, stuns, duration FROM player_data AS pd, match_data AS md WHERE md.match_id = pd.match_id AND pd.account_id = ?', [param,])
+    elif ver == 'win':
+        cur.execute('SELECT kills, deaths, lh_and_d, gpm, tower_kills, roshan_kills, teamfight, obs_placed, camps_stacked, rune_pickups, \
+            first_blood, stuns, duration FROM player_data AS pd, match_data AS md, team_lookup AS tl, player_lookup AS pl WHERE \
+            ((md.radiant_win = 1 and md.radiant_team_id = tl.team_id) OR (md.radiant_win = 0 and md.dire_team_id = tl.team_id)) \
+            AND md.match_id = pd.match_id AND tl.team_id = pl.team_id AND pd.account_id = pl.account_id AND pd.account_id = ?', [param,])
+    elif ver == 'loss':
+        cur.execute('SELECT kills, deaths, lh_and_d, gpm, tower_kills, roshan_kills, teamfight, obs_placed, camps_stacked, rune_pickups, \
+            first_blood, stuns, duration FROM player_data AS pd, match_data AS md, team_lookup AS tl, player_lookup AS pl WHERE \
+            ((md.radiant_win = 0 and md.radiant_team_id = tl.team_id) OR (md.radiant_win = 1 and md.dire_team_id = tl.team_id)) \
+            AND md.match_id = pd.match_id AND tl.team_id = pl.team_id AND pd.account_id = pl.account_id AND pd.account_id = ?', [param,])
+    elif ver == 'role':
+        cur.execute('SELECT kills, deaths, lh_and_d, gpm, tower_kills, roshan_kills, teamfight, obs_placed, camps_stacked, rune_pickups, \
+            first_blood, stuns, duration FROM player_data AS pd, match_data AS md, player_lookup AS pl WHERE md.match_id = pd.match_id \
+            AND pl.account_id = pd.account_id AND pl.role = ?', [param,])
+    elif ver == 'hero':
+        cur.execute('SELECT kills, deaths, lh_and_d, gpm, tower_kills, roshan_kills, teamfight, obs_placed, camps_stacked, rune_pickups, \
+            first_blood, stuns, duration FROM player_data AS pd, match_data AS md WHERE md.match_id = pd.match_id AND pd.hero_id = ?', [param,])
+    else:
+        error('Invalid FPpM version')
+        return -1
+    ret_val = 0
+    data_list = cur.fetchall()
+    for point in data_list:
+        ret_val += (60*fp(point))/point[12]
+
+    return ret_val/len(data_list)
 #    
 # Main
 #
 
 # Validate args
-if(len(sys.argv) > 2):
-    error("Too many arguments :: Format is python scrapper (url to team's game series) (number of series)")
+if(len(sys.argv) > 3):
+    error("Too many arguments :: Format is python scraper.py params.txt matches.txt")
     sys.exit()
-if(len(sys.argv) < 1):
-    error("Too little arguments :: Format is python scrapper (url to team's game series) (number of series)")
+if(len(sys.argv) < 2):
+    error("Too little arguments :: Format is python scraper.py params.txt matches.txt")
     sys.exit()
 param_file = open(sys.argv[1], 'r')
 params = parseParams(param_file.read());
@@ -249,6 +309,7 @@ if 4 in exec_phase:
     for player in players:
         stats = fetchAvgStats('player_data AS pd, match_data AS md WHERE md.match_id = pd.match_id AND pd.account_id = ?', [player[0],])
         stat_dp = getAvgDataPoint(stats)
+
         wins = fetchAvgStats('player_data AS pd, match_data AS md, team_lookup AS tl, player_lookup AS pl WHERE \
             ((md.radiant_win = 1 and md.radiant_team_id = tl.team_id) OR (md.radiant_win = 0 and md.dire_team_id = tl.team_id)) \
             AND md.match_id = pd.match_id AND tl.team_id = pl.team_id AND pd.account_id = pl.account_id AND pd.account_id = ?', [player[0],])
@@ -259,14 +320,14 @@ if 4 in exec_phase:
         loss_dp = getAvgDataPoint(losses)
 
         cur.execute('INSERT INTO player_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [player[1], roles[player[3]], stat_dp, win_dp, loss_dp, \
-            fppm(stat_dp, stats[0][12]), fppm(win_dp, wins[0][12]), fppm(loss_dp, losses[0][12])] + flareData(stats))
+            fppm('avg', player[0]), fppm('win', player[0]), fppm('loss', player[0])] + flareData(stats))
     conn.commit()
 
     summaryHeader('role_summary')
     for role in roles.keys():
         stats = fetchAvgStats('player_data AS pd, match_data AS md, player_lookup AS pl WHERE md.match_id = pd.match_id AND pd.account_id =  pl.account_id AND role = ?', [role,])
         stat_dp = getAvgDataPoint(stats)
-        cur.execute('INSERT INTO role_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [roles[role], stat_dp, fppm(stat_dp, stats[0][12])] + flareData(stats))
+        cur.execute('INSERT INTO role_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [roles[role], stat_dp, fppm('role', role)] + flareData(stats))
     conn.commit()
 
     summaryHeader('hero_summary')
@@ -281,7 +342,7 @@ if 4 in exec_phase:
             role_stat = cur.fetchall()
             role_stats.append(role_stat[0][0])
         total = role_stats[0] + role_stats[1] + role_stats[2]
-        cur.execute('INSERT INTO hero_summary VALUES (?,?,?,?,?,?)', [hero[1], stat_dp, fppm(stat_dp, stats[0][12]), role_stats[0]/total, role_stats[2]/total, role_stats[1]/total])
+        cur.execute('INSERT INTO hero_summary VALUES (?,?,?,?,?,?)', [hero[1], stat_dp, fppm('hero', hero[0]), role_stats[0]/total, role_stats[2]/total, role_stats[1]/total])
     conn.commit()
 
     summaryHeader('team_summary')
@@ -296,16 +357,30 @@ if 4 in exec_phase:
 
     conn.commit()
 
-    summaryHeader('leg_summary')
-    for i in [0,2,4,6,8]:
-        for role in roles.keys():
-            stats = fetchAvgStats('player_data AS pd, hero_lookup AS hl, player_lookup AS pl, match_data AS md WHERE pl.account_id = pd.account_id AND \
-                    md.match_id = pd.match_id AND pd.hero_id = hl.hero_id AND hl.legs = ? AND pl.role = ?', [i, role,])
-            if stats[0][0] is not None:
-                stat_dp = getAvgDataPoint(stats)
-                cur.execute('INSERT INTO leg_summary VALUES (?,?,?,?)', [roles[role], i, stat_dp, fppm(stat_dp, stats[0][12])])
+#    summaryHeader('leg_summary')
+#    for i in [0,2,4,6,8]:
+#        for role in roles.keys():
+#            stats = fetchAvgStats('player_data AS pd, hero_lookup AS hl, player_lookup AS pl, match_data AS md WHERE pl.account_id = pd.account_id AND \
+#                    md.match_id = pd.match_id AND pd.hero_id = hl.hero_id AND hl.legs = ? AND pl.role = ?', [i, role,])
+#            if stats[0][0] is not None:
+#                stat_dp = getAvgDataPoint(stats)
+#                cur.execute('INSERT INTO leg_summary VALUES (?,?,?,?)', [roles[role], i, stats_dp, fppm('avg')])
+#
+#    conn.commit()
 
-    conn.commit()
+if 5 in exec_phase:
+    info('Phase 5 - Generating rankings')
+    match_file = open(sys.argv[2], 'r')
+    matches = parseMatches(match_file);
+    match_file.close()
+    print(matches)
+
+if 6 in exec_phase:
+    info('Phase 6 - Selecting cards according to models')
+
+if 7 in exec_phase:
+    info('Phase 7 - Assesing previous selections')
 
 info('Shutting down...')
+
 conn.close()
