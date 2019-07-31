@@ -303,9 +303,9 @@ if 4 in exec_phase:
                     md.match_id = pd.match_id AND pd.hero_id = hl.hero_id AND hl.legs = ? AND pl.role = ?', [i, role,])
             if stats[0][0] is not None:
                 stat_dp = getAvgDataPoint(stats)
-                cur.execute('INSERT INTO leg_summary VALUES (?,?,?,?)', [roles[role], i, stats_dp[0][0], fppm(stat_dp, stats[0][12])])
+                cur.execute('INSERT INTO leg_summary VALUES (?,?,?,?)', [roles[role], i, stat_dp, fppm(stat_dp, stats[0][12])])
 
     conn.commit()
 
-
+info('Shutting down...')
 conn.close()
