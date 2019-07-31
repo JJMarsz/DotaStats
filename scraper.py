@@ -7,7 +7,7 @@ import json
 # Control flags
 fail_error = 0
 log_lvl = 2 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
-exec_phase = [4] #ALL, 1, 2, 3, 4, 5
+exec_phase = [5] #ALL, 1, 2, 3, 4, 5
 cache_data = 1
 db_file = 'stats.db'
 
@@ -18,6 +18,7 @@ hdr = { 'User-Agent' : 'im a robot beepboop' }
 roles = {'1' : 'Core', '2' : 'Support', '4' : 'Mid'}
 points = {'kills' : 0.3, 'deaths' : -0.3, 'lh_and_d' : 0.003, 'gpm' : 0.002, 'tower_kills' : 1, 'roshan_kills' : 1, 'teamfight' : 3, \
             'obs_placed' : 0.5, 'camps_stacked' : 0.5, 'rune_pickups' : 0.25, 'first_blood' : 4, 'stuns' : 0.05}# Deaths +3
+best_of = {'1':1, '2':2, '3':2, '5':3}
 
 #
 # Subroutines
@@ -74,6 +75,31 @@ def parseParams(params):
         params = params[params.find('\n')+1:]
     return dic
     
+# parse next day matches
+# Format:
+# team_tag1 team_tag2 (BO#)
+# team_tag1 team_tag2 (BO#)
+# team_tag1 team_tag2 (BO#)
+# ...
+# (MUST HAVE NEW LINE AT END)
+def parseMatches(matches):
+    cur.execute('SELECT * FROM team_lookup')
+    teams = cur.fetchall()
+    tags = extractColumn(teams, 2)
+    dic = {}
+    while matches.find('\n') != -1:
+        bo = best_of[matches[matches.rfind(' ')+1:len(matches)-1]]
+        if matches[:matches.find(' ')] in tags:
+            if matches[:matches.find(' ')] not in dic.keys(): dic[matches[:matches.find(' ')]] = bo
+            else: dic[matches[:matches.find(' ')]] += bo
+        else: error('Team tag ' + matches[:matches.find(' ')] + ' is not a valid TI team')
+        if matches[matches.find(' ')+1:matches.rfind(' ')] in tags:
+            if matches[matches.find(' ')+1:matches.rfind(' ')] not in dic.keys(): dic[matches[matches.find(' ')+1:matches.rfind(' ')]] = bo
+            else: dic[matches[matches.find(' ')+1:matches.rfind(' ')]] += bo
+        else: error('Team tag ' + matches[matches.find(' ')+1:matches.rfind(' ')] + ' is not a valid TI team')
+        matches = matches[matches.find('\n')+1:]
+    return dic
+
 # Given a list of player dictionaries, returns dict with given id
 def getPlayer(l, acc_id):
     for p in l:
@@ -129,11 +155,11 @@ def fppm(fp, duration):
 #
 
 # Validate args
-if(len(sys.argv) > 2):
-    error("Too many arguments :: Format is python scrapper (url to team's game series) (number of series)")
+if(len(sys.argv) > 3):
+    error("Too many arguments :: Format is python scraper.py params.txt matches.txt")
     sys.exit()
-if(len(sys.argv) < 1):
-    error("Too little arguments :: Format is python scrapper (url to team's game series) (number of series)")
+if(len(sys.argv) < 2):
+    error("Too little arguments :: Format is python scraper.py params.txt matches.txt")
     sys.exit()
 param_file = open(sys.argv[1], 'r')
 params = parseParams(param_file.read());
@@ -308,4 +334,10 @@ if 4 in exec_phase:
     conn.commit()
 
 
+if 5 in exec_phase:
+    info('Phase 5 - Generate rankings')
+    match_file = open(sys.argv[2], 'r')
+    matches = parseMatches(match_file.read());
+    match_file.close()
+    print(matches)
 conn.close()
