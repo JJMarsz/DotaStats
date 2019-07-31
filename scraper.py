@@ -7,7 +7,7 @@ import json
 # Control flags
 fail_error = 0
 log_lvl = 2 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
-exec_phase = [4] #ALL, 1, 2, 3, 4, 5
+exec_phase = [5] #ALL, 1, 2, 3, 4, 5
 cache_data = 1
 db_file = 'stats.db'
 
@@ -82,22 +82,22 @@ def parseParams(params):
 # team_tag1 team_tag2 (BO#)
 # ...
 # (MUST HAVE NEW LINE AT END)
-def parseMatches(matches):
+def parseMatches(match_file):
     cur.execute('SELECT * FROM team_lookup')
     teams = cur.fetchall()
     tags = extractColumn(teams, 2)
     dic = {}
-    while matches.find('\n') != -1:
-        bo = best_of[matches[matches.rfind(' ')+1:len(matches)-1]]
-        if matches[:matches.find(' ')] in tags:
-            if matches[:matches.find(' ')] not in dic.keys(): dic[matches[:matches.find(' ')]] = bo
-            else: dic[matches[:matches.find(' ')]] += bo
-        else: error('Team tag ' + matches[:matches.find(' ')] + ' is not a valid TI team')
-        if matches[matches.find(' ')+1:matches.rfind(' ')] in tags:
-            if matches[matches.find(' ')+1:matches.rfind(' ')] not in dic.keys(): dic[matches[matches.find(' ')+1:matches.rfind(' ')]] = bo
-            else: dic[matches[matches.find(' ')+1:matches.rfind(' ')]] += bo
-        else: error('Team tag ' + matches[matches.find(' ')+1:matches.rfind(' ')] + ' is not a valid TI team')
-        matches = matches[matches.find('\n')+1:]
+    for match in match_file:
+        bo = best_of[match[match.rfind(' ')+1:len(match)-1]]
+        if match[:match.find(' ')] in tags:
+            if match[:match.find(' ')] not in dic.keys(): dic[match[:match.find(' ')]] = bo
+            else: dic[match[:match.find(' ')]] += bo
+        else: error('Team tag ' + match[:match.find(' ')] + ' is not a valid TI team')
+        if match[match.find(' ')+1:match.rfind(' ')] in tags:
+            if match[match.find(' ')+1:match.rfind(' ')] not in dic.keys(): dic[match[match.find(' ')+1:match.rfind(' ')]] = bo
+            else: dic[match[match.find(' ')+1:match.rfind(' ')]] += bo
+        else: error('Team tag ' + match[match.find(' ')+1:match.rfind(' ')] + ' is not a valid TI team')
+        match = match[match.find('\n')+1:]
     return dic
 
 # Given a list of player dictionaries, returns dict with given id
@@ -370,9 +370,16 @@ if 4 in exec_phase:
 
 
 if 5 in exec_phase:
-    info('Phase 5 - Generate rankings')
+    info('Phase 5 - Generating rankings')
     match_file = open(sys.argv[2], 'r')
-    matches = parseMatches(match_file.read());
+    matches = parseMatches(match_file);
     match_file.close()
     print(matches)
+
+if 6 in exec_phase:
+    info('Phase 6 - Selecting cards according to models')
+
+if 7 in exec_phase:
+    info('Phase 7 - Assesing previous selections')
+
 conn.close()
