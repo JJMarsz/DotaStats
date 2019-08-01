@@ -5,7 +5,7 @@ import sqlite3
 import json
 
 # Control flags
-fail_error = 0
+fail_error = 1
 log_lvl = 2 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
 exec_phase = [5] #ALL, 1, 2, 3, 4, 5
 cache_data = 1
@@ -90,14 +90,16 @@ def parseMatches(match_file):
     for match in match_file:
         bo = best_of[match[match.rfind(' ')+1:len(match)-1]]
         if match[:match.find(' ')] in tags:
-            if match[:match.find(' ')] not in dic.keys(): dic[match[:match.find(' ')]] = bo
-            else: dic[match[:match.find(' ')]] += bo
+            if match[:match.find(' ')] not in dic.keys(): dic[match[:match.find(' ')]] = {'total' : bo, 'matches' : []}
+            else: dic[match[:match.find(' ')]]['total'] += bo
         else: error('Team tag ' + match[:match.find(' ')] + ' is not a valid TI team')
         if match[match.find(' ')+1:match.rfind(' ')] in tags:
-            if match[match.find(' ')+1:match.rfind(' ')] not in dic.keys(): dic[match[match.find(' ')+1:match.rfind(' ')]] = bo
-            else: dic[match[match.find(' ')+1:match.rfind(' ')]] += bo
+            if match[match.find(' ')+1:match.rfind(' ')] not in dic.keys(): dic[match[match.find(' ')+1:match.rfind(' ')]] = {'total' : bo, 'matches' : []}
+            else: dic[match[match.find(' ')+1:match.rfind(' ')]]['total'] += bo
         else: error('Team tag ' + match[match.find(' ')+1:match.rfind(' ')] + ' is not a valid TI team')
-        match = match[match.find('\n')+1:]
+        dic[match[:match.find(' ')]]['matches'].append({match[match.find(' ')+1:match.rfind(' ')] : bo})
+        dic[match[match.find(' ')+1:match.rfind(' ')]]['matches'].append({match[:match.find(' ')] : bo})
+
     return dic
 
 # Given a list of player dictionaries, returns dict with given id
@@ -374,6 +376,7 @@ if 5 in exec_phase:
     matches = parseMatches(match_file);
     match_file.close()
     print(matches)
+
 
 if 6 in exec_phase:
     info('Phase 6 - Selecting cards according to models')
