@@ -152,7 +152,7 @@ def avg(arr):
     val = 0
     for i in arr:
         val += i
-    return i/len(arr)
+    return val/len(arr)
 
 def stdDev(arr):
     mean = avg(arr)
@@ -302,9 +302,9 @@ if 4 in exec_phase:
         std_dev_fppm = stdDev(extractColumn(stats, 1))
         avg_fp = avg(extractColumn(stats, 0))
         avg_fppm = avg(extractColumn(stats, 1))
-        for i in range(len(stats)-2):
-            stats[i] = avg(stats[i+2])
-        stats = stats[:len(stats)-2]
+        fp_stats = []
+        for i in range(len(stats[0])-2):
+            fp_stats.append(avg(extractColumn(stats, i+2)))
         #wins = fetchAvgStats('player_data AS pd, match_data AS md, team_lookup AS tl, player_lookup AS pl WHERE \
         #    ((md.radiant_win = 1 and md.radiant_team_id = tl.team_id) OR (md.radiant_win = 0 and md.dire_team_id = tl.team_id)) \
         #    AND md.match_id = pd.match_id AND tl.team_id = pl.team_id AND pd.account_id = pl.account_id AND pd.account_id = ?', [player[0],])
@@ -315,29 +315,39 @@ if 4 in exec_phase:
         #loss_dp = getAvgDataPoint(losses)
 
         cur.execute('INSERT INTO player_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [player[1], roles[player[3]], avg_fp, avg_fp + std_dev_fp, avg_fp - std_dev_fp, \
-            avg_fppm, avg_fppm + std_dev_fppm, avg_fppm - avg_fppm] + flareData(stats))
+            avg_fppm, avg_fppm + std_dev_fppm, avg_fppm - avg_fppm] + flareData(fp_stats))
     conn.commit()
 
     summaryHeader('role_summary')
     for role in roles.keys():
-        stats = fetchAvgStats('player_data AS pd, match_data AS md, player_lookup AS pl WHERE md.match_id = pd.match_id AND pd.account_id =  pl.account_id AND role = ?', [role,])
-        stat_dp = getAvgDataPoint(stats)
-        cur.execute('INSERT INTO role_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [roles[role], stat_dp, fppm('role', role)] + flareData(stats))
+        stats = fetchFPStats('player_data AS pd, match_data AS md, player_lookup AS pl WHERE md.match_id = pd.match_id AND pd.account_id =  pl.account_id AND role = ?', [role,])
+        avg_fp = avg(extractColumn(stats, 0))
+        avg_fppm = avg(extractColumn(stats, 1))
+        fp_stats = []
+        for i in range(len(stats[0])-2):
+            fp_stats.append(avg(extractColumn(stats, i+2)))
+        cur.execute('INSERT INTO role_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [roles[role], avg_fp, avg_fppm] + flareData(fp_stats))
     conn.commit()
 
     summaryHeader('hero_summary')
     cur.execute('SELECT * FROM hero_lookup')
     heroes = cur.fetchall()
     for hero in heroes:
-        stats = fetchAvgStats('player_data AS pd, hero_lookup AS hl, match_data AS md WHERE md.match_id = pd.match_id AND pd.hero_id = hl.hero_id AND pd.hero_id = ?', [hero[0],])
-        stat_dp = getAvgDataPoint(stats)
+        stats = fetchFPStats('player_data AS pd, hero_lookup AS hl, match_data AS md WHERE md.match_id = pd.match_id AND pd.hero_id = hl.hero_id AND pd.hero_id = ?', [hero[0],])
+        std_dev_fp = stdDev(extractColumn(stats, 0))
+        std_dev_fppm = stdDev(extractColumn(stats, 1))
+        avg_fp = avg(extractColumn(stats, 0))
+        avg_fppm = avg(extractColumn(stats, 1))
+        fp_stats = []
+        for i in range(len(stats[0])-2):
+            fp_stats.append(avg(extractColumn(stats, i+2)))
         role_stats = []
         for role in roles.keys():
             cur.execute('SELECT COUNT(pl.role) FROM player_data AS pd, player_lookup AS pl WHERE pd.account_id = pl.account_id AND pl.role = ? AND pd.hero_id = ?', [role, hero[0],])
             role_stat = cur.fetchall()
             role_stats.append(role_stat[0][0])
         total = role_stats[0] + role_stats[1] + role_stats[2]
-        cur.execute('INSERT INTO hero_summary VALUES (?,?,?,?,?,?)', [hero[1], stat_dp, fppm('hero', hero[0]), role_stats[0]/total, role_stats[2]/total, role_stats[1]/total])
+        cur.execute('INSERT INTO hero_summary VALUES (?,?,?,?,?,?,?)', [hero[1], avg_fp, avg_fppm, total, role_stats[0]/total, role_stats[2]/total, role_stats[1]/total])
     conn.commit()
 
     summaryHeader('team_summary')
