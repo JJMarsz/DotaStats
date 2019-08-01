@@ -378,8 +378,17 @@ if 5 in exec_phase:
     match_file = open(sys.argv[2], 'r')
     matches = parseMatches(match_file);
     match_file.close()
-    cur.execute('SELECT pl.name, pl.team_id FROM player_lookup AS pl, team_lookup AS tl, player_summary AS ps, team_summary AS ts WHERE tl.team_id = ts.team_id AND tl.team_id = pl.team_id \
-        ps.player_name = pl.name')
+    cur.execute('SELECT pl.name, pl.team_tag, pl.role, ts.avg_duration FROM player_lookup AS pl, team_lookup AS tl, player_summary AS ps, team_summary AS ts WHERE tl.team_id = ts.team_id \
+        AND tl.team_id = pl.team_id AND ps.player_name = pl.name')
+    players = cur.fetchall()
+    for player in players:
+        for match in matches[player[1]]:
+            cur.execute('SELECT * FROM avg_rankings WHERE name = ?', [player[0]])
+            fp = cur.fetchall()[0]
+            if len(fp) == 0:
+                cur.execute('INSERT INTO avg_rankings VALUES (?,?,?,?,?)', [player[0], player[2], ])
+            else:
+                cur.execute('UPDATE avg_rankings SET high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [,,,player[0]])
 
 
 if 6 in exec_phase:
