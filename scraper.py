@@ -117,11 +117,11 @@ def extractColumn(q, i=0):
     return data
 
 def secToTime(sec):
-    s = (str(int(sec % 60)))
-    h = sec % 3600
+    s = str(int(sec % 60))
+    h = str(int(sec / 3600))
     if len(s) == 1: s = '0' + s
     if h > 0: 
-    	m = str(int(sec%3600))
+    	m = str(int((sec%3600)/60))
     	if len(m) == 1: m = '0' + m
     	return str(h) + ':' + m + ':' + s
     else: return str(int(sec/60)) + ':' + s
