@@ -8,8 +8,7 @@ import math
 # Control flags
 fail_error = 1
 log_lvl = 2 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
-exec_phase = [3,4,5] #ALL, 1, 2, 3, 4, 5
-cache_data = 1
+exec_phase = [4, 5, 6] # 1, 2, 3, 4, 5, 6, 7
 db_file = 'stats.db'
 
 # Some useful constants
@@ -206,7 +205,7 @@ param_file.close()
 key = params['key']
 params.pop('key')
 # Connect to the Database
-info('Connecting to the DB...')
+info('Connecting to the database...')
 conn = sqlite3.connect(db_file)
 cur = conn.cursor()
 
@@ -307,7 +306,7 @@ if 3 in exec_phase:
     conn.commit()
 
 if 4 in exec_phase:
-    info('Phase 4 - Aggregating data into summary tables in DB')
+    info('Phase 4 - Aggregating data into summary tables')
     summaryHeader('player_summary')
     cur.execute('SELECT * FROM player_lookup')
     players = cur.fetchall()
@@ -328,9 +327,8 @@ if 4 in exec_phase:
         #    ((md.radiant_win = 0 and md.radiant_team_id = tl.team_id) OR (md.radiant_win = 1 and md.dire_team_id = tl.team_id)) \
         #    AND md.match_id = pd.match_id AND tl.team_id = pl.team_id AND pd.account_id = pl.account_id AND pd.account_id = ?', [player[0],])
         #loss_dp = getAvgDataPoint(losses)
-
         cur.execute('INSERT INTO player_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [player[1], roles[player[3]], avg_fp, avg_fp + std_dev_fp, avg_fp - std_dev_fp, \
-            avg_fppm, avg_fppm + std_dev_fppm, avg_fppm - avg_fppm] + flareData(fp_stats))
+            avg_fppm, avg_fppm + std_dev_fppm, avg_fppm - std_dev_fppm] + flareData(fp_stats))
     conn.commit()
 
     summaryHeader('role_summary')
@@ -389,7 +387,12 @@ if 4 in exec_phase:
 #    conn.commit()
 
 if 5 in exec_phase:
-    info('Phase 5 - Generating rankings')
+    info('Phase 5 - Scraping next days matches')
+
+    conn.commit()
+
+if 6 in exec_phase:
+    info('Phase 6 - Generating rankings')
     match_file = open(sys.argv[2], 'r')
     matches = parseMatches(match_file);
     match_file.close()
@@ -426,11 +429,10 @@ if 5 in exec_phase:
 
     conn.commit()
 
-if 6 in exec_phase:
-    info('Phase 6 - Selecting cards according to models')
-
 if 7 in exec_phase:
-    info('Phase 7 - Assesing previous selections')
+    info('Phase 7 - Generating rankings from last day')
+
+    conn.commit()
 
 info('Shutting down...')
 
