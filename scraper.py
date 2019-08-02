@@ -8,7 +8,7 @@ import math
 # Control flags
 fail_error = 1
 log_lvl = 2 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
-exec_phase = [4] #ALL, 1, 2, 3, 4, 5
+exec_phase = [5] #ALL, 1, 2, 3, 4, 5
 cache_data = 1
 db_file = 'stats.db'
 
@@ -115,7 +115,7 @@ def extractColumn(q, i=0):
     for d in q:
         data.append(d[i])
     return data
-
+# TODO CONVERT TO HOURS
 def toTime(sec):
     s = (str(int(sec % 60)))
     if len(s) == 1: s = '0' + s
@@ -378,18 +378,22 @@ if 5 in exec_phase:
     match_file = open(sys.argv[2], 'r')
     matches = parseMatches(match_file);
     match_file.close()
-    cur.execute('SELECT pl.name, pl.team_tag, pl.role, ts.avg_duration FROM player_lookup AS pl, team_lookup AS tl, player_summary AS ps, team_summary AS ts WHERE tl.team_id = ts.team_id \
+    cur.execute('DELETE FROM fp_rankings')
+    cur.execute('SELECT pl.name, tl.tag, pl.role, ts.avg_duration, ps.high_fp, ps.avg_fp, ps.low_fp FROM player_lookup AS pl, team_lookup AS tl, player_summary AS ps, team_summary AS ts WHERE tl.name = ts.name \
         AND tl.team_id = pl.team_id AND ps.player_name = pl.name')
     players = cur.fetchall()
     for player in players:
-        for match in matches[player[1]]:
-            cur.execute('SELECT * FROM avg_rankings WHERE name = ?', [player[0]])
-            fp = cur.fetchall()[0]
-            if len(fp) == 0:
-                cur.execute('INSERT INTO avg_rankings VALUES (?,?,?,?,?)', [player[0], player[2], ])
-            else:
-                cur.execute('UPDATE avg_rankings SET high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [,,,player[0]])
+        if player[1] in matches.keys():
+            match_data =  matches[player[1]]
+            for match in match_data['matches']:
+                cur.execute('SELECT * FROM fp_rankings WHERE name = ?', [player[0]])
+                fp = cur.fetchall()
+                if len(fp) == 0:
+                    cur.execute('INSERT INTO fp_rankings VALUES (?,?,?,?,?,?)', [player[0], roles[player[2]], match_data['total'], player[4], player[5], player[6]])
+                else:
+                    cur.execute('UPDATE fp_rankings SET high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [fp[0][3] + player[4], fp[0][4]+player[5], fp[0][5]+player[6], player[0]])
 
+    conn.commit()
 
 if 6 in exec_phase:
     info('Phase 6 - Selecting cards according to models')
