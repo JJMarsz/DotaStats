@@ -127,10 +127,14 @@ def secToTime(sec):
     else: return str(int(sec/60)) + ':' + s
 
 def timeToSec(time):
-	round_min = round(float(time[0:1])/60)
+    time = time.strip()
+    if len(time) > 5: 
+        return int(time[6:8]) + int(time[3:5])*60 + int(time[0:2])*3600
+    else: 
+        return int(time[3:5]) + int(time[0:2])*60
 
 def secToMin(sec):
-	
+	return round(sec/60)
 
 def summaryHeader(table_name):
     cur.execute('SELECT * FROM ' + table_name)
@@ -391,7 +395,6 @@ if 5 in exec_phase:
     match_file.close()
     cur.execute('DELETE FROM fp_rankings')
     cur.execute('DELETE FROM fppm_rankings')
-    cur.execute('SELECT ')
     cur.execute('SELECT pl.name, tl.tag, pl.role, ts.avg_duration, ps.high_fp, ps.avg_fp, ps.low_fp, ps.high_fppm, ps.avg_fppm, ps.low_fppm FROM player_lookup AS pl, team_lookup AS tl, \
     	player_summary AS ps, team_summary AS ts WHERE tl.name = ts.name AND tl.team_id = pl.team_id AND ps.player_name = pl.name')
     players = cur.fetchall()
@@ -399,19 +402,26 @@ if 5 in exec_phase:
         if player[1] in matches.keys():
             match_data =  matches[player[1]]
             for match in match_data['matches']:
+                bo = match[list(match)[0]]
                 cur.execute('SELECT * FROM fp_rankings WHERE name = ?', [player[0]])
                 fp = cur.fetchall()
                 if len(fp) == 0:
-                    cur.execute('INSERT INTO fp_rankings VALUES (?,?,?,?,?,?)', [player[0], roles[player[2]], match_data['total'], player[4], player[5], player[6]])
+                    cur.execute('INSERT INTO fp_rankings VALUES (?,?,?,?,?,?)', [player[0], roles[player[2]], match_data['total'], bo*player[4], bo*player[5], bo*player[6]])
                 else:
-                    cur.execute('UPDATE fp_rankings SET high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [fp[0][3] + player[4], fp[0][4]+player[5], fp[0][5]+player[6], player[0]])
+                    cur.execute('UPDATE fp_rankings SET high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [fp[0][3] + bo*player[4], fp[0][4] + bo*player[5], fp[0][5] + bo*player[6],\
+                    player[0]])
                 cur.execute('SELECT * FROM fppm_rankings WHERE name = ?', [player[0]])
                 fppm = cur.fetchall()
-                expec_length = 
+                cur.execute('SELECT ts.avg_duration FROM team_summary AS ts, team_lookup AS tl WHERE tl.name = ts.name AND tl.tag IN (?,?)', [player[1], list(match)[0]])
+                ts = cur.fetchall()
+                durs = extractColumn(ts, 0)
+                length = avg([secToMin(timeToSec(durs[0])), secToMin(timeToSec(durs[1]))])
                 if len(fppm) == 0:
-                    cur.execute('INSERT INTO fppm_rankings VALUES (?,?,?,?,?,?)', [player[0], roles[player[2]], match_data['total'], player[7], player[8], player[9]])
+                    cur.execute('INSERT INTO fppm_rankings VALUES (?,?,?,?,?,?)', [player[0], roles[player[2]], match_data['total'], bo*player[7]*length, bo*player[8]*length, \
+                        bo*player[9]*length])
                 else:
-                    cur.execute('UPDATE fppm_rankings SET high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [fppm[0][3] + player[7], fppm[0][4]+player[8], fppm[0][5]+player[9], player[0]])
+                    cur.execute('UPDATE fppm_rankings SET high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [fppm[0][3] + bo*player[7]*length, fppm[0][4] + bo*player[8]*length, \
+                        fppm[0][5] + bo*player[9]*length, player[0]])
 
 
     conn.commit()
