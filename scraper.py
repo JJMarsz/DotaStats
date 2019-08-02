@@ -5,11 +5,13 @@ import sqlite3
 import json
 import math
 
-# Control flags
+# Control variables
 fail_error = 1
 log_lvl = 2 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
 exec_phase = [4, 5, 6] # 1, 2, 3, 4, 5, 6, 7
-db_file = 'stats.db'
+f_db = 'stats.db'
+f_params = 'params.txt'
+f_matches = 'matches.txt'
 
 # Some useful constants
 start_2018 = 1513728000
@@ -193,20 +195,20 @@ def fp(stat):
 #
 
 # Validate args
-if(len(sys.argv) > 3):
-    error("Too many arguments :: Format is python scraper.py params.txt matches.txt")
+if(len(sys.argv) > 1):
+    error("Too many arguments :: Format is python scraper.py")
     sys.exit()
-if(len(sys.argv) < 2):
-    error("Too little arguments :: Format is python scraper.py params.txt matches.txt")
+if(len(sys.argv) < 0):
+    error("Too little arguments :: Format is python scraper.py")
     sys.exit()
-param_file = open(sys.argv[1], 'r')
+param_file = open(f_params, 'r')
 params = parseParams(param_file.read());
 param_file.close()
 key = params['key']
 params.pop('key')
 # Connect to the Database
 info('Connecting to the database...')
-conn = sqlite3.connect(db_file)
+conn = sqlite3.connect(f_db)
 cur = conn.cursor()
 
 if 1 in exec_phase:
@@ -393,7 +395,7 @@ if 5 in exec_phase:
 
 if 6 in exec_phase:
     info('Phase 6 - Generating rankings')
-    match_file = open(sys.argv[2], 'r')
+    match_file = open(f_matches, 'r')
     matches = parseMatches(match_file);
     match_file.close()
     cur.execute('DELETE FROM fp_rankings')
