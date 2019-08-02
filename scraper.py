@@ -115,11 +115,19 @@ def extractColumn(q, i=0):
     for d in q:
         data.append(d[i])
     return data
-# TODO CONVERT TO HOURS
+
 def toTime(sec):
     s = (str(int(sec % 60)))
+    h = sec % 3600
     if len(s) == 1: s = '0' + s
-    return str(int(sec/60)) + ':' + s
+    if h > 0: 
+    	m = str(int(sec%3600))
+    	if len(m) == 1: m = '0' + m
+    	return str(h) + ':' + m + ':' + s
+    else: return str(int(sec/60)) + ':' + s
+
+def toMin(time):
+	round_min = round(float(time[0:1])/60)
 
 def summaryHeader(table_name):
     cur.execute('SELECT * FROM ' + table_name)
@@ -392,6 +400,7 @@ if 5 in exec_phase:
                     cur.execute('INSERT INTO fp_rankings VALUES (?,?,?,?,?,?)', [player[0], roles[player[2]], match_data['total'], player[4], player[5], player[6]])
                 else:
                     cur.execute('UPDATE fp_rankings SET high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [fp[0][3] + player[4], fp[0][4]+player[5], fp[0][5]+player[6], player[0]])
+
 
     conn.commit()
 
