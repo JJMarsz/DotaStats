@@ -8,7 +8,7 @@ import math
 # Control flags
 fail_error = 1
 log_lvl = 2 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
-exec_phase = [5] #ALL, 1, 2, 3, 4, 5
+exec_phase = [3,4,5] #ALL, 1, 2, 3, 4, 5
 cache_data = 1
 db_file = 'stats.db'
 
@@ -118,7 +118,7 @@ def extractColumn(q, i=0):
 
 def secToTime(sec):
     s = str(int(sec % 60))
-    h = str(int(sec / 3600))
+    h = int(sec / 3600)
     if len(s) == 1: s = '0' + s
     if h > 0: 
     	m = str(int((sec%3600)/60))
@@ -373,7 +373,7 @@ if 4 in exec_phase:
         cur.execute('SELECT tl.name, AVG(duration) FROM player_lookup AS pl, match_data AS md, player_data AS pd, team_lookup AS tl WHERE md.match_id = pd.match_id \
                                                                         AND pl.account_id = pd.account_id AND tl.team_id = pl.team_id AND pl.team_id = ?', [team[0]])
         stats_dp = cur.fetchall()
-        cur.execute('INSERT INTO team_summary VALUES (?,?)', [stats_dp[0][0], toTime(stats_dp[0][1])])
+        cur.execute('INSERT INTO team_summary VALUES (?,?)', [stats_dp[0][0], secToTime(stats_dp[0][1])])
 
     conn.commit()
 
