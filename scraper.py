@@ -403,11 +403,13 @@ if 6 in exec_phase:
     cur.execute('SELECT pl.name, tl.tag, pl.role, ts.avg_duration, ps.high_fp, ps.avg_fp, ps.low_fp, ps.high_fppm, ps.avg_fppm, ps.low_fppm FROM player_lookup AS pl, team_lookup AS tl, \
     	player_summary AS ps, team_summary AS ts WHERE tl.name = ts.name AND tl.team_id = pl.team_id AND ps.player_name = pl.name')
     players = cur.fetchall()
+    max_bo = 0
     for player in players:
         if player[1] in matches.keys():
             match_data =  matches[player[1]]
             for match in match_data['matches']:
                 bo = match[list(match)[0]]
+                if bo > max_bo: max_bo = bo
                 cur.execute('SELECT * FROM fp_rankings WHERE name = ?', [player[0]])
                 fp = cur.fetchall()
                 if len(fp) == 0:
@@ -428,11 +430,29 @@ if 6 in exec_phase:
                     cur.execute('UPDATE fppm_rankings SET high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [fppm[0][3] + bo*player[7]*length, fppm[0][4] + bo*player[8]*length, \
                         fppm[0][5] + bo*player[9]*length, player[0]])
 
+    # Now create a super ranking for each player playing the most amount of matches for each role
+    ranks = {'Core' : {}, 'Mid' : {}, 'Support' : {}} # 5, 5, 5 desc for each role
+    for role in roles.keys():
+        cur.execute('SELECT name, high_fp FROM fp_rankings WHERE num_games = ? AND role = ? ORDER BY high_fp DESC', [max_bo, roles[role]])
+        high_fp_players = cur.fetchall()
+        
+        cur.execute('SELECT name, avg_fp FROM fp_rankings WHERE num_games = ? AND role = ? ORDER BY avg_fp DESC', [max_bo, roles[role]])
+        avg_fp_players = cur.fetchall()
+        cur.execute('SELECT name, low_fp FROM fp_rankings WHERE num_games = ? AND role = ? ORDER BY low_fp DESC', [max_bo, roles[role]])
+        low_fp_players = cur.fetchall()
+        cur.execute('SELECT name, high_fp FROM fppm_rankings WHERE num_games = ? AND role = ? ORDER BY high_fp DESC', [max_bo, roles[role]])
+        high_fppm_players = cur.fetchall()
+        cur.execute('SELECT name, avg_fp FROM fppm_rankings WHERE num_games = ? AND role = ? ORDER BY avg_fp DESC', [max_bo, roles[role]])
+        avg_fppm_players = cur.fetchall()
+        cur.execute('SELECT name, low_fp FROM fppm_rankings WHERE num_games = ? AND role = ? ORDER BY low_fp DESC', [max_bo, roles[role]])
+        low_fppm_players = cur.fetchall()
+
+
 
     conn.commit()
 
 if 7 in exec_phase:
-    info('Phase 7 - Generating rankings from last day')
+    info('Phase 7 - Assessing last day FP performance')
 
     conn.commit()
 
