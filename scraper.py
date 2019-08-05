@@ -329,8 +329,8 @@ if 4 in exec_phase:
         #    ((md.radiant_win = 0 and md.radiant_team_id = tl.team_id) OR (md.radiant_win = 1 and md.dire_team_id = tl.team_id)) \
         #    AND md.match_id = pd.match_id AND tl.team_id = pl.team_id AND pd.account_id = pl.account_id AND pd.account_id = ?', [player[0],])
         #loss_dp = getAvgDataPoint(losses)
-        cur.execute('INSERT INTO player_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [player[1], roles[player[3]], avg_fp, avg_fp + std_dev_fp, avg_fp - std_dev_fp, \
-            avg_fppm, avg_fppm + std_dev_fppm, avg_fppm - std_dev_fppm] + flareData(fp_stats))
+        cur.execute('INSERT INTO player_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [player[1], roles[player[3]], avg_fp + std_dev_fp, avg_fp, avg_fp - std_dev_fp, \
+            avg_fppm + std_dev_fppm, avg_fppm, avg_fppm - std_dev_fppm] + flareData(fp_stats))
     conn.commit()
 
     summaryHeader('role_summary')
