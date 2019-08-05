@@ -8,7 +8,7 @@ import math
 # Control variables
 fail_error = 1
 log_lvl = 2 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
-exec_phase = [4, 5, 6] # 1, 2, 3, 4, 5, 6, 7
+exec_phase = [6] # 1, 2, 3, 4, 5, 6, 7
 f_db = 'stats.db'
 f_params = 'params.txt'
 f_matches = 'matches.txt'
@@ -188,6 +188,15 @@ def fp(stat):
     return stat[0]*points['kills'] + stat[1]*points['deaths'] + 3 + stat[2]*points['lh_and_d'] + stat[3]*points['gpm'] + \
             stat[4]*points['tower_kills'] + stat[5]*points['roshan_kills'] + stat[6]*points['teamfight'] + stat[7]*points['obs_placed'] + \
             stat[8]*points['camps_stacked'] + stat[9]*points['rune_pickups'] + stat[10]*points['first_blood'] + stat[11]*points['stuns']
+
+def loadRanks(table, col, role, max_bo, ranks):
+    cur.execute('SELECT name, ' + col + ' FROM ' + table + ' WHERE num_games = ? AND role = ? ORDER BY ' + col + ' ASC', [max_bo, roles[role]])
+    single_ranks = cur.fetchall()
+    for i in range(len(single_ranks)):
+        if single_ranks[i][0] in ranks[roles[role]]:
+            ranks[roles[role]][single_ranks[i][0]] += i+1
+        else:
+            ranks[roles[role]][single_ranks[i][0]] = i+1
 
 
 #    
@@ -409,7 +418,7 @@ if 6 in exec_phase:
             match_data =  matches[player[1]]
             for match in match_data['matches']:
                 bo = match[list(match)[0]]
-                if bo > max_bo: max_bo = bo
+                if match_data['total'] > max_bo: max_bo = match_data['total']
                 cur.execute('SELECT * FROM fp_rankings WHERE name = ?', [player[0]])
                 fp = cur.fetchall()
                 if len(fp) == 0:
@@ -431,23 +440,18 @@ if 6 in exec_phase:
                         fppm[0][5] + bo*player[9]*length, player[0]])
 
     # Now create a super ranking for each player playing the most amount of matches for each role
-    ranks = {'Core' : {}, 'Mid' : {}, 'Support' : {}} # 5, 5, 5 desc for each role
+    cur.execute('DELETE FROM rankings')
+    ranks = {'Core' : {}, 'Mid' : {}, 'Support' : {}} 
     for role in roles.keys():
-        cur.execute('SELECT name, high_fp FROM fp_rankings WHERE num_games = ? AND role = ? ORDER BY high_fp DESC', [max_bo, roles[role]])
-        high_fp_players = cur.fetchall()
-        
-        cur.execute('SELECT name, avg_fp FROM fp_rankings WHERE num_games = ? AND role = ? ORDER BY avg_fp DESC', [max_bo, roles[role]])
-        avg_fp_players = cur.fetchall()
-        cur.execute('SELECT name, low_fp FROM fp_rankings WHERE num_games = ? AND role = ? ORDER BY low_fp DESC', [max_bo, roles[role]])
-        low_fp_players = cur.fetchall()
-        cur.execute('SELECT name, high_fp FROM fppm_rankings WHERE num_games = ? AND role = ? ORDER BY high_fp DESC', [max_bo, roles[role]])
-        high_fppm_players = cur.fetchall()
-        cur.execute('SELECT name, avg_fp FROM fppm_rankings WHERE num_games = ? AND role = ? ORDER BY avg_fp DESC', [max_bo, roles[role]])
-        avg_fppm_players = cur.fetchall()
-        cur.execute('SELECT name, low_fp FROM fppm_rankings WHERE num_games = ? AND role = ? ORDER BY low_fp DESC', [max_bo, roles[role]])
-        low_fppm_players = cur.fetchall()
+        loadRanks('fp_rankings', 'high_fp', role, max_bo, ranks)
+        loadRanks('fp_rankings', 'avg_fp', role, max_bo, ranks)
+        loadRanks('fp_rankings', 'low_fp', role, max_bo, ranks)
+        loadRanks('fppm_rankings', 'high_fp', role, max_bo, ranks)
+        loadRanks('fppm_rankings', 'avg_fp', role, max_bo, ranks)
+        loadRanks('fppm_rankings', 'low_fp', role, max_bo, ranks)
 
-
+        for player in ranks[roles[role]].keys():
+            cur.execute('INSERT INTO rankings VALUES (?,?,?)', [player, roles[role], ranks[roles[role]][player]])
 
     conn.commit()
 
