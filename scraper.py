@@ -6,18 +6,18 @@ import json
 import math
 
 # Control variables
-fail_error = 1
+fail_error = 0
 ti_mode = 1 # only scrape macthes after a specific date
 test_mode = 0 # uses different DB
 log_lvl = 2 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
-exec_phase = [4,6] # 1, 2, 3, 4, 5, 6, 7
+exec_phase = [6] # 1, 2, 3, 4, 5, 6, 7
 f_db = 'stats.db'
 f_params = 'params.txt'
 f_matches = 'matches.txt'
 
 # Some useful constants
 start_2018 = 1513728000
-ti_start = 1547095680‬ - start_2018
+ti_start = 1547095680
 od = 'https://api.opendota.com/api/'
 hdr = { 'User-Agent' : 'im a robot beepboop' }
 roles = {'1' : 'Core', '2' : 'Support', '4' : 'Mid'}
@@ -61,7 +61,7 @@ def getMatchLinks(team_id, num_tourneys, key):
             t_count += 1
             if t_count > int(num_tourneys):
                 break
-        if match_json['start_time'] - start_2018 < ti_start and ti_mode:
+        if match_json['start_time'] < ti_start and ti_mode:
             break
 
         match_links.append(match_json[i]['match_id'])
@@ -88,7 +88,6 @@ def parseParams(params):
 # team_tag1 team_tag2 (BO#) <-- Normal Case
 # team_tag3 team_tag4 (BO#)
 # team_tag5 team_tag3/team_tag4 (BO#)  <-- Case where opponent is winner of another series
-# team_tag6/team_tag5 team_tag3/team_tag4 (BO#)  <-- Case where both teams are results of series
 # ...
 # (MUST HAVE NEW LINE AT END)
 def parseMatches(match_file):
@@ -105,6 +104,7 @@ def parseMatches(match_file):
         if match[match.find(' ')+1:match.rfind(' ')] in tags:
             if match[match.find(' ')+1:match.rfind(' ')] not in dic.keys(): dic[match[match.find(' ')+1:match.rfind(' ')]] = {'total' : bo, 'matches' : []}
             else: dic[match[match.find(' ')+1:match.rfind(' ')]]['total'] += bo
+        elif '/' in match[match.find(' ')+1:match.rfind(' ')]: dic[match[match.find(' ')+1:match.rfind(' ')]] = {'total' : bo, 'matches' : []}
         else: error('Team tag ' + match[match.find(' ')+1:match.rfind(' ')] + ' is not a valid TI team')
         dic[match[:match.find(' ')]]['matches'].append({match[match.find(' ')+1:match.rfind(' ')] : bo})
         dic[match[match.find(' ')+1:match.rfind(' ')]]['matches'].append({match[:match.find(' ')] : bo})
@@ -423,30 +423,35 @@ if 6 in exec_phase:
     players = cur.fetchall()
     max_bo = 0
     for player in players:
-        if player[1] in matches.keys():
-            match_data =  matches[player[1]]
-            for match in match_data['matches']:
-                bo = match[list(match)[0]]
-                if match_data['total'] > max_bo: max_bo = match_data['total']
-                cur.execute('SELECT * FROM fp_rankings WHERE name = ?', [player[0]])
-                fp = cur.fetchall()
-                if len(fp) == 0:
-                    cur.execute('INSERT INTO fp_rankings VALUES (?,?,?,?,?,?)', [player[0], roles[player[2]], match_data['total'], bo*player[4], bo*player[5], bo*player[6]])
-                else:
-                    cur.execute('UPDATE fp_rankings SET high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [fp[0][3] + bo*player[4], fp[0][4] + bo*player[5], fp[0][5] + bo*player[6],\
-                    player[0]])
-                cur.execute('SELECT * FROM fppm_rankings WHERE name = ?', [player[0]])
-                fppm = cur.fetchall()
-                cur.execute('SELECT ts.avg_duration FROM team_summary AS ts, team_lookup AS tl WHERE tl.name = ts.name AND tl.tag IN (?,?)', [player[1], list(match)[0]])
-                ts = cur.fetchall()
-                durs = extractColumn(ts, 0)
-                length = avg([secToMin(timeToSec(durs[0])), secToMin(timeToSec(durs[1]))])
-                if len(fppm) == 0:
-                    cur.execute('INSERT INTO fppm_rankings VALUES (?,?,?,?,?,?)', [player[0], roles[player[2]], match_data['total'], bo*player[7]*length, bo*player[8]*length, \
-                        bo*player[9]*length])
-                else:
-                    cur.execute('UPDATE fppm_rankings SET high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [fppm[0][3] + bo*player[7]*length, fppm[0][4] + bo*player[8]*length, \
-                        fppm[0][5] + bo*player[9]*length, player[0]])
+        for team in matches.keys():
+            if player[1] in team:
+                tables = ['unk_fp_stats', 'unk_fppm_stats']
+                if player[1] == team: tables = ['fp_rankings', 'fppm_rankings']
+                match_data =  matches[player[1]]
+                for match in match_data['matches']:
+                    bo = match[list(match)[0]]
+                    if match_data['total'] > max_bo: max_bo = match_data['total']
+                    cur.execute('SELECT * FROM ' + tables[0] + ' WHERE name = ?', [player[0]])
+                    fp = cur.fetchall()
+                    if len(fp) == 0:
+                        cur.execute('INSERT INTO '+ tables[0] + ' VALUES (?,?,?,?,?,?)', [player[0], roles[player[2]], match_data['total'], bo*player[4], bo*player[5], bo*player[6]])
+                    else:
+                        cur.execute('UPDATE ' + tables[0] + ' SET high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [fp[0][3] + bo*player[4], fp[0][4] + bo*player[5], fp[0][5] + bo*player[6],\
+                        player[0]])
+                    cur.execute('SELECT * FROM ' + tables[1] + ' WHERE name = ?', [player[0]])
+                    fppm = cur.fetchall()
+
+                    #TODO CASES????
+                    cur.execute('SELECT ts.avg_duration FROM team_summary AS ts, team_lookup AS tl WHERE tl.name = ts.name AND tl.tag IN (?,?)', [player[1], list(match)[0]])
+                    ts = cur.fetchall()
+                    durs = extractColumn(ts, 0)
+                    length = avg([secToMin(timeToSec(durs[0])), secToMin(timeToSec(durs[1]))])
+                    if len(fppm) == 0:
+                        cur.execute('INSERT INTO ' + tables[1] + ' VALUES (?,?,?,?,?,?)', [player[0], roles[player[2]], match_data['total'], bo*player[7]*length, bo*player[8]*length, \
+                            bo*player[9]*length])
+                    else:
+                        cur.execute('UPDATE ' + tables[1] + ' SET high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [fppm[0][3] + bo*player[7]*length, fppm[0][4] + bo*player[8]*length, \
+                            fppm[0][5] + bo*player[9]*length, player[0]])
 
     # Now create a super ranking for each player playing the most amount of matches for each role
     cur.execute('DELETE FROM rankings')
