@@ -7,6 +7,8 @@ import math
 
 # Control variables
 fail_error = 1
+ti_mode = 1 # only scrape macthes after a specific date
+test_mode = 0 # uses different DB
 log_lvl = 2 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
 exec_phase = [4,6] # 1, 2, 3, 4, 5, 6, 7
 f_db = 'stats.db'
@@ -15,6 +17,7 @@ f_matches = 'matches.txt'
 
 # Some useful constants
 start_2018 = 1513728000
+ti_start = 1547095680‬ - start_2018
 od = 'https://api.opendota.com/api/'
 hdr = { 'User-Agent' : 'im a robot beepboop' }
 roles = {'1' : 'Core', '2' : 'Support', '4' : 'Mid'}
@@ -58,6 +61,9 @@ def getMatchLinks(team_id, num_tourneys, key):
             t_count += 1
             if t_count > int(num_tourneys):
                 break
+        if match_json['start_time'] - start_2018 < ti_start and ti_mode:
+            break
+
         match_links.append(match_json[i]['match_id'])
     return match_links
 
@@ -79,9 +85,10 @@ def parseParams(params):
     
 # parse next day matches
 # Format:
-# team_tag1 team_tag2 (BO#)
-# team_tag1 team_tag2 (BO#)
-# team_tag1 team_tag2 (BO#)
+# team_tag1 team_tag2 (BO#) <-- Normal Case
+# team_tag3 team_tag4 (BO#)
+# team_tag5 team_tag3/team_tag4 (BO#)  <-- Case where opponent is winner of another series
+# team_tag6/team_tag5 team_tag3/team_tag4 (BO#)  <-- Case where both teams are results of series
 # ...
 # (MUST HAVE NEW LINE AT END)
 def parseMatches(match_file):
@@ -217,7 +224,9 @@ key = params['key']
 params.pop('key')
 # Connect to the Database
 info('Connecting to the database...')
-conn = sqlite3.connect(f_db)
+conn = ''
+if test_mode: conn = sqlite3.connect('test_' + f_db)
+else: conn = sqlite3.connect(f_db)
 cur = conn.cursor()
 
 if 1 in exec_phase:
