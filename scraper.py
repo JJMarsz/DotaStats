@@ -205,6 +205,9 @@ def loadRanks(table, col, role, max_bo, ranks):
         else:
             ranks[roles[role]][single_ranks[i][0]] = i+1
 
+def splitName(names):
+	return [names[:names.find('/')], names[names.find('/')+1:]]
+
 
 #    
 # Main
@@ -425,11 +428,12 @@ if 6 in exec_phase:
     for player in players:
         for team in matches.keys():
             if player[1] in team:
-                tables = ['unk_fp_stats', 'unk_fppm_stats']
-                if player[1] == team: tables = ['fp_rankings', 'fppm_rankings']
                 match_data =  matches[player[1]]
                 for match in match_data['matches']:
+                	tables = ['fp_rankings', 'fppm_rankings']
                     bo = match[list(match)[0]]
+                    opp = list(match)[0]
+                    if list(match)[0] not in match.keys() or player[1] == team: tables = ['unk_fp_stats', 'unk_fppm_stats']#if opp or player's team is unknown
                     if match_data['total'] > max_bo: max_bo = match_data['total']
                     cur.execute('SELECT * FROM ' + tables[0] + ' WHERE name = ?', [player[0]])
                     fp = cur.fetchall()
@@ -440,9 +444,13 @@ if 6 in exec_phase:
                         player[0]])
                     cur.execute('SELECT * FROM ' + tables[1] + ' WHERE name = ?', [player[0]])
                     fppm = cur.fetchall()
-
-                    #TODO CASES????
-                    cur.execute('SELECT ts.avg_duration FROM team_summary AS ts, team_lookup AS tl WHERE tl.name = ts.name AND tl.tag IN (?,?)', [player[1], list(match)[0]])
+                    if 'unk_' in tables[0]:
+                    	#find out which team needs to be split
+                    	#update scenario
+                    	cur.execute('UPDATE unk_fp_stats SET scenario = ? WHERE name = ?', [player[1] + ' beats ' + , player[0]])
+                    else:
+                    	team_tag = list(match)[0]
+                    cur.execute('SELECT ts.avg_duration FROM team_summary AS ts, team_lookup AS tl WHERE tl.name = ts.name AND tl.tag IN (?,?)', [player[1], team_tag])
                     ts = cur.fetchall()
                     durs = extractColumn(ts, 0)
                     length = avg([secToMin(timeToSec(durs[0])), secToMin(timeToSec(durs[1]))])
