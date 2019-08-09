@@ -6,7 +6,7 @@ import json
 import math
 
 # Control variables
-fail_error = 0
+fail_error = 1
 ti_mode = 1 # only scrape macthes after a specific date
 test_mode = 0 # uses different DB
 log_lvl = 2 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
@@ -421,6 +421,8 @@ if 6 in exec_phase:
     match_file.close()
     cur.execute('DELETE FROM fp_rankings')
     cur.execute('DELETE FROM fppm_rankings')
+    cur.execute('DELETE FROM unk_fp_stats')
+    cur.execute('DELETE FROM unk_fppm_stats')
     cur.execute('SELECT pl.name, tl.tag, pl.role, ts.avg_duration, ps.high_fp, ps.avg_fp, ps.low_fp, ps.high_fppm, ps.avg_fppm, ps.low_fppm FROM player_lookup AS pl, team_lookup AS tl, \
     	player_summary AS ps, team_summary AS ts WHERE tl.name = ts.name AND tl.team_id = pl.team_id AND ps.player_name = pl.name')
     players = cur.fetchall()
@@ -428,62 +430,71 @@ if 6 in exec_phase:
     for player in players:
         for team in matches.keys():
             if player[1] in team:
-                match_data =  matches[player[1]]
+                match_data =  matches[team]
                 for match in match_data['matches']:
                     tables = ['fp_rankings', 'fppm_rankings']
                     opp = list(match)[0]
                     bo = match[list(match)[0]]
-                    if opp not in matches.keys() or player[1] != team: tables = ['unk_fp_stats', 'unk_fppm_stats']#if opp or player's team is unknown
+                    if '/' in opp or '/' in team: tables = ['unk_fp_stats', 'unk_fppm_stats']#if opp or player's team is unknown
                     if match_data['total'] > max_bo: max_bo = match_data['total']
                     cur.execute('SELECT * FROM ' + tables[0] + ' WHERE name = ?', [player[0]])
                     fp = cur.fetchall()
                     if len(fp) == 0:
-                        cur.execute('INSERT INTO '+ tables[0] + ' VALUES (?,?,?,?,?,?,?)', [player[0], roles[player[2]], match_data['total'], bo*player[4], bo*player[5], bo*player[6], None])
+                        cur.execute('INSERT INTO '+ tables[0] + ' VALUES (?,?,?,?,?,?,?)', [player[0], roles[player[2]], bo, bo*player[4], bo*player[5], bo*player[6], None])
                     else:
-                        cur.execute('UPDATE ' + tables[0] + ' SET high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [fp[0][3] + bo*player[4], fp[0][4] + bo*player[5], fp[0][5] + bo*player[6],\
-                        player[0]])
+                        cur.execute('UPDATE ' + tables[0] + ' SET num_games = ?, high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [bo + fp[0][2], fp[0][3] + bo*player[4], \
+                            fp[0][4] + bo*player[5], fp[0][5] + bo*player[6], player[0]])
                     cur.execute('SELECT * FROM ' + tables[1] + ' WHERE name = ?', [player[0]])
                     fppm = cur.fetchall()
                     # check if a team needs to be split
                     if 'unk_' in tables[0]:
                         if '/' in team:
                             teams = splitName(team)
-                            if player[1] == teams[0]: prev_op = teams[1]
-                            else: prev_op = teams[0]
+                            if player[1] == teams[0]: 
+                                prev_op = teams[1]
+                                team_tag = teams[0]
+                            else: 
+                                prev_op = teams[0]
+                                team_tag = teams[1]
                             #update fp scenario
                             cur.execute('UPDATE unk_fp_stats SET scenario = ? WHERE name = ?', [player[1] + ' beats ' + prev_op, player[0]])
-                        if '/' in opp:
+                            #insert unk
+                            cur.execute('SELECT ts.avg_duration FROM team_summary AS ts, team_lookup AS tl WHERE tl.name = ts.name AND tl.tag IN (?,?)', [player[1], opp])
+                            ts = cur.fetchall()
+                            durs = extractColumn(ts, 0)
+                            length = avg([secToMin(timeToSec(durs[0])), secToMin(timeToSec(durs[1]))])
+                            cur.execute('INSERT INTO ' + tables[1] + ' VALUES (?,?,?,?,?,?,?)', [player[0], roles[player[2]], bo, bo*player[7]*length, bo*player[8]*length, \
+                                bo*player[9]*length, player[1] + ' beats ' + prev_op])
+                        elif '/' in opp:
                             teams = splitName(opp)
-                            team_tag = team[0]
+                            team_tag = teams[0]
                             cur.execute('SELECT ts.avg_duration FROM team_summary AS ts, team_lookup AS tl WHERE tl.name = ts.name AND tl.tag IN (?,?)', [player[1], team_tag])
                             ts = cur.fetchall()
                             durs = extractColumn(ts, 0)
                             length = avg([secToMin(timeToSec(durs[0])), secToMin(timeToSec(durs[1]))])
-                            cur.execute('INSERT INTO ' + tables[1] + ' VALUES (?,?,?,?,?,?,?)', [player[0], roles[player[2]], match_data['total'], bo*player[7]*length, bo*player[8]*length, \
+                            cur.execute('INSERT INTO ' + tables[1] + ' VALUES (?,?,?,?,?,?,?)', [player[0], roles[player[2]], bo, bo*player[7]*length, bo*player[8]*length, \
                                 bo*player[9]*length, team_tag + ' beats ' + teams[1]])
                             team_tag = teams[1]
                             cur.execute('SELECT ts.avg_duration FROM team_summary AS ts, team_lookup AS tl WHERE tl.name = ts.name AND tl.tag IN (?,?)', [player[1], team_tag])
                             ts = cur.fetchall()
                             durs = extractColumn(ts, 0)
                             length = avg([secToMin(timeToSec(durs[0])), secToMin(timeToSec(durs[1]))])
-                            cur.execute('INSERT INTO ' + tables[1] + ' VALUES (?,?,?,?,?,?,?)', [player[0], roles[player[2]], match_data['total'], bo*player[7]*length, bo*player[8]*length, \
+                            cur.execute('INSERT INTO ' + tables[1] + ' VALUES (?,?,?,?,?,?,?)', [player[0], roles[player[2]], bo, bo*player[7]*length, bo*player[8]*length, \
                                 bo*player[9]*length, team_tag + ' beats ' + teams[0]])
                         else: error('Labeled as unknown matchup, yet niether team meets that criterea')
                     	#update scenario of tables[0]
                     else:
                         team_tag = opp
-                        print(opp)
-                        print(player[1])
                         cur.execute('SELECT ts.avg_duration FROM team_summary AS ts, team_lookup AS tl WHERE tl.name = ts.name AND tl.tag IN (?,?)', [player[1], team_tag])
                         ts = cur.fetchall()
                         durs = extractColumn(ts, 0)
                         length = avg([secToMin(timeToSec(durs[0])), secToMin(timeToSec(durs[1]))])
                         if len(fppm) == 0:
-                            cur.execute('INSERT INTO ' + tables[1] + ' VALUES (?,?,?,?,?,?)', [player[0], roles[player[2]], match_data['total'], bo*player[7]*length, bo*player[8]*length, \
+                            cur.execute('INSERT INTO ' + tables[1] + ' VALUES (?,?,?,?,?,?)', [player[0], roles[player[2]], bo, bo*player[7]*length, bo*player[8]*length, \
                                 bo*player[9]*length])
                         else:
-                            cur.execute('UPDATE ' + tables[1] + ' SET high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [fppm[0][3] + bo*player[7]*length, fppm[0][4] + bo*player[8]*length, \
-                                fppm[0][5] + bo*player[9]*length, player[0]])
+                            cur.execute('UPDATE ' + tables[1] + ' SET num_games  = ?, high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [bo + fppm[0][2], fppm[0][3] + bo*player[7]*length, \
+                                fppm[0][4] + bo*player[8]*length, fppm[0][5] + bo*player[9]*length, player[0]])
 
     # Now create a super ranking for each player playing the most amount of matches for each role
     cur.execute('DELETE FROM rankings')
