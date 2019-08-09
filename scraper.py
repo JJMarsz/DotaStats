@@ -208,6 +208,18 @@ def loadRanks(table, col, role, max_bo, ranks):
 def splitName(names):
 	return [names[:names.find('/')], names[names.find('/')+1:]]
 
+def insertFPpMRank(player, opp, table, bo, fppm, scenario=None):
+    cur.execute('SELECT ts.avg_duration FROM team_summary AS ts, team_lookup AS tl WHERE tl.name = ts.name AND tl.tag IN (?,?)', [player[1], opp])
+    ts = cur.fetchall()
+    durs = extractColumn(ts, 0)
+    length = avg([secToMin(timeToSec(durs[0])), secToMin(timeToSec(durs[1]))])
+    if len(fppm)==0 or 'unk_' in table:
+        cur.execute('INSERT INTO ' + table + ' VALUES (?,?,?,?,?,?,?)', [player[0], roles[player[2]], bo, bo*player[7]*length, bo*player[8]*length, \
+            bo*player[9]*length, scenario])
+    else:            
+        cur.execute('UPDATE ' + table + ' SET num_games  = ?, high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [bo + fppm[0][2], fppm[0][3] + bo*player[7]*length, \
+            fppm[0][4] + bo*player[8]*length, fppm[0][5] + bo*player[9]*length, player[0]])
+
 
 #    
 # Main
@@ -450,51 +462,16 @@ if 6 in exec_phase:
                     if 'unk_' in tables[0]:
                         if '/' in team:
                             teams = splitName(team)
-                            if player[1] == teams[0]: 
-                                prev_op = teams[1]
-                                team_tag = teams[0]
-                            else: 
-                                prev_op = teams[0]
-                                team_tag = teams[1]
-                            #update fp scenario
+                            if player[1] == teams[0]: prev_op = teams[1]
+                            else: prev_op = teams[0]
                             cur.execute('UPDATE unk_fp_stats SET scenario = ? WHERE name = ?', [player[1] + ' beats ' + prev_op, player[0]])
-                            #insert unk
-                            cur.execute('SELECT ts.avg_duration FROM team_summary AS ts, team_lookup AS tl WHERE tl.name = ts.name AND tl.tag IN (?,?)', [player[1], opp])
-                            ts = cur.fetchall()
-                            durs = extractColumn(ts, 0)
-                            length = avg([secToMin(timeToSec(durs[0])), secToMin(timeToSec(durs[1]))])
-                            cur.execute('INSERT INTO ' + tables[1] + ' VALUES (?,?,?,?,?,?,?)', [player[0], roles[player[2]], bo, bo*player[7]*length, bo*player[8]*length, \
-                                bo*player[9]*length, player[1] + ' beats ' + prev_op])
+                            insertFPpMRank(player, opp, tables[1], bo, fppm, player[1] + ' beats ' + prev_op)
                         elif '/' in opp:
                             teams = splitName(opp)
-                            team_tag = teams[0]
-                            cur.execute('SELECT ts.avg_duration FROM team_summary AS ts, team_lookup AS tl WHERE tl.name = ts.name AND tl.tag IN (?,?)', [player[1], team_tag])
-                            ts = cur.fetchall()
-                            durs = extractColumn(ts, 0)
-                            length = avg([secToMin(timeToSec(durs[0])), secToMin(timeToSec(durs[1]))])
-                            cur.execute('INSERT INTO ' + tables[1] + ' VALUES (?,?,?,?,?,?,?)', [player[0], roles[player[2]], bo, bo*player[7]*length, bo*player[8]*length, \
-                                bo*player[9]*length, team_tag + ' beats ' + teams[1]])
-                            team_tag = teams[1]
-                            cur.execute('SELECT ts.avg_duration FROM team_summary AS ts, team_lookup AS tl WHERE tl.name = ts.name AND tl.tag IN (?,?)', [player[1], team_tag])
-                            ts = cur.fetchall()
-                            durs = extractColumn(ts, 0)
-                            length = avg([secToMin(timeToSec(durs[0])), secToMin(timeToSec(durs[1]))])
-                            cur.execute('INSERT INTO ' + tables[1] + ' VALUES (?,?,?,?,?,?,?)', [player[0], roles[player[2]], bo, bo*player[7]*length, bo*player[8]*length, \
-                                bo*player[9]*length, team_tag + ' beats ' + teams[0]])
+                            insertFPpMRank(player, teams[0], tables[1], bo, fppm, teams[0] + ' beats ' + teams[1])
+                            insertFPpMRank(player, teams[1], tables[1], bo, fppm, teams[1] + ' beats ' + teams[0])
                         else: error('Labeled as unknown matchup, yet niether team meets that criterea')
-                    	#update scenario of tables[0]
-                    else:
-                        team_tag = opp
-                        cur.execute('SELECT ts.avg_duration FROM team_summary AS ts, team_lookup AS tl WHERE tl.name = ts.name AND tl.tag IN (?,?)', [player[1], team_tag])
-                        ts = cur.fetchall()
-                        durs = extractColumn(ts, 0)
-                        length = avg([secToMin(timeToSec(durs[0])), secToMin(timeToSec(durs[1]))])
-                        if len(fppm) == 0:
-                            cur.execute('INSERT INTO ' + tables[1] + ' VALUES (?,?,?,?,?,?)', [player[0], roles[player[2]], bo, bo*player[7]*length, bo*player[8]*length, \
-                                bo*player[9]*length])
-                        else:
-                            cur.execute('UPDATE ' + tables[1] + ' SET num_games  = ?, high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [bo + fppm[0][2], fppm[0][3] + bo*player[7]*length, \
-                                fppm[0][4] + bo*player[8]*length, fppm[0][5] + bo*player[9]*length, player[0]])
+                    else: insertFPpMRank(player, opp, tables[1], bo, fppm)
 
     # Now create a super ranking for each player playing the most amount of matches for each role
     cur.execute('DELETE FROM rankings')
