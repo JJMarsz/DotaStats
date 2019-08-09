@@ -220,6 +220,10 @@ def insertFPpMRank(player, opp, table, bo, fppm, scenario=None):
         cur.execute('UPDATE ' + table + ' SET num_games  = ?, high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [bo + fppm[0][2], fppm[0][3] + bo*player[7]*length, \
             fppm[0][4] + bo*player[8]*length, fppm[0][5] + bo*player[9]*length, player[0]])
 
+def fetchTeams(scenario):
+    return ''.join(sorted(scenario.replace(' beats ', '')))
+
+
 
 #    
 # Main
@@ -472,6 +476,27 @@ if 6 in exec_phase:
                             insertFPpMRank(player, teams[1], tables[1], bo, fppm, teams[1] + ' beats ' + teams[0])
                         else: error('Labeled as unknown matchup, yet niether team meets that criterea')
                     else: insertFPpMRank(player, opp, tables[1], bo, fppm)
+
+    # check whether scenarios should be made
+    cur.execute('SELECT ufppms.*, ufps.high_fp, ufps.avg_fp, ufps.low_fp FROM unk_fppm_stats as ufppms, unk_fp_stats AS ufps WHERE ufppms.name = ufps.name AND \
+        (ufppms.scenario = ufps.scenario OR ufps.scenario IS NULL)')
+    unks = cur.fetchall()
+
+    if len(unks) > 0:
+        scenarios = {}# [pair][path][player_name][fp,fppm,bo]
+        for unk in unks:
+            teams = fetchTeams(unk[6])
+            if teams not in scenarios.keys():
+                scenarios[teams] = {unk[6] : {unk[0] : {'fp' : [unk[7:10]], 'fppm' : [unk[3:6]], 'bo' : unk[2]}}}
+            elif unk[6] not in scenarios[teams].keys():
+                scenarios[teams][unk[6]] = {unk[0] : {'fp' : [unk[7:10]], 'fppm' : [unk[3:6]], 'bo' : unk[2]}}
+            elif unk[0] not in scenarios[teams][unk[6]].keys():
+                scenarios[teams][unk[6]][unk[0]] = {'fp' : [unk[7:10]], 'fppm' : [unk[3:6]], 'bo' : unk[2]}
+            else: error('Already have an entry for ' + unk[0] + ' in scenario ' + teams + ' path ' + unk[6])
+        #enumerate the possibilities
+        
+
+    else: info('No branching scenarios detected')
 
     # Now create a super ranking for each player playing the most amount of matches for each role
     cur.execute('DELETE FROM rankings')
