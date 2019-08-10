@@ -496,17 +496,18 @@ if 6 in exec_phase:
         paths = []
         for scenario in scenarios.keys():
             paths.append(list(scenarios[scenario].keys()))
-        length = 2**len(paths)
-        variations = ['']*length
-        for i in range(length):#total amount of variations
+        variations = []
+        for i in range((2**len(paths))):
+        	variations.append([])
+        for i in range(len(variations)):#total amount of variations
             count = i
             for j in range(len(paths)):#go through every path-set
                 for k in range(len(paths[j])):#select a single path from each path_set
                     if (len(paths[j]) - k - 1)*(2**(len(paths) - j - 1)) <= count:
-                        if variations[i] != '': variations[i] += ' AND '
-                        variations[i] += paths[j][k]
+                        variations[i].append(paths[j][k])
                         count -= (len(paths[j]) - k - 1)*(2**(len(paths) - j - 1))
                         break
+        #create len(variations) amount of tables and import the appropriate data into it
 
 
 
