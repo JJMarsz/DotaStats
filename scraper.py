@@ -475,7 +475,7 @@ if 6 in exec_phase:
                             insertFPpMRank(player, teams[1], tables[1], bo, fppm, teams[1] + ' beats ' + teams[0])
                         else: error('Labeled as unknown matchup, yet niether team meets that criterea')
                     else: insertFPpMRank(player, opp, tables[1], bo, fppm)
-
+    conn.commit()
     # check whether scenarios should be made
     cur.execute('SELECT ufppms.*, ufps.high_fp, ufps.avg_fp, ufps.low_fp FROM unk_fppm_stats as ufppms, unk_fp_stats AS ufps WHERE ufppms.name = ufps.name AND \
         (ufppms.scenario = ufps.scenario OR ufps.scenario IS NULL)')
@@ -498,18 +498,26 @@ if 6 in exec_phase:
             paths.append(list(scenarios[scenario].keys()))
         variations = []
         for i in range((2**len(paths))):
-        	variations.append([])
+            variations.append([])
         for i in range(len(variations)):#total amount of variations
             count = i
             for j in range(len(paths)):#go through every path-set
                 for k in range(len(paths[j])):#select a single path from each path_set
                     if (len(paths[j]) - k - 1)*(2**(len(paths) - j - 1)) <= count:
-                        variations[i].append(paths[j][k])
+                        variations[i].append(paths[j][k].replace(' ', '_').replace('.', 'o'))
                         count -= (len(paths[j]) - k - 1)*(2**(len(paths) - j - 1))
                         break
+        cur.execute("SELECT name FROM sqlite_master WHERE type = 'table';")
+        tables = cur.fetchall()
+        for table in tables:
+        	if 'fp_rankings_' in table[0] or 'fppm_rankings_' in table[0]:
+        		cur.execute('DROP TABLE ' + table[0])
         #create len(variations) amount of tables and import the appropriate data into it
-
-
+        for var in variations:
+        	name = ''
+        	for scen in var: name += scen
+        	cur.execute('CREATE TABLE fp_rankings_' + name + ' AS SELECT * FROM fp_rankings WHERE 0')
+        	cur.execute('INSERT INTO fp_rankings_' + name + ' SELECT * FROM fp_rankings')
 
            
 
