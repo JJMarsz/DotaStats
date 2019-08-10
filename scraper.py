@@ -129,9 +129,9 @@ def secToTime(sec):
     h = int(sec / 3600)
     if len(s) == 1: s = '0' + s
     if h > 0: 
-    	m = str(int((sec%3600)/60))
-    	if len(m) == 1: m = '0' + m
-    	return str(h) + ':' + m + ':' + s
+        m = str(int((sec%3600)/60))
+        if len(m) == 1: m = '0' + m
+        return str(h) + ':' + m + ':' + s
     else: return str(int(sec/60)) + ':' + s
 
 def timeToSec(time):
@@ -142,7 +142,7 @@ def timeToSec(time):
         return int(time[3:5]) + int(time[0:2])*60
 
 def secToMin(sec):
-	return round(sec/60)
+    return round(sec/60)
 
 def summaryHeader(table_name):
     cur.execute('SELECT * FROM ' + table_name)
@@ -206,7 +206,7 @@ def loadRanks(table, col, role, max_bo, ranks):
             ranks[roles[role]][single_ranks[i][0]] = i+1
 
 def splitName(names):
-	return [names[:names.find('/')], names[names.find('/')+1:]]
+    return [names[:names.find('/')], names[names.find('/')+1:]]
 
 def insertFPpMRank(player, opp, table, bo, fppm, scenario=None):
     cur.execute('SELECT ts.avg_duration FROM team_summary AS ts, team_lookup AS tl WHERE tl.name = ts.name AND tl.tag IN (?,?)', [player[1], opp])
@@ -223,13 +223,12 @@ def insertFPpMRank(player, opp, table, bo, fppm, scenario=None):
 def fetchTeams(scenario):
     return ''.join(sorted(scenario.replace(' beats ', '')))
 
-
-
 #    
 # Main
 #
 
 # Validate args
+
 if(len(sys.argv) > 1):
     error("Too many arguments :: Format is python scraper.py")
     sys.exit()
@@ -440,7 +439,7 @@ if 6 in exec_phase:
     cur.execute('DELETE FROM unk_fp_stats')
     cur.execute('DELETE FROM unk_fppm_stats')
     cur.execute('SELECT pl.name, tl.tag, pl.role, ts.avg_duration, ps.high_fp, ps.avg_fp, ps.low_fp, ps.high_fppm, ps.avg_fppm, ps.low_fppm FROM player_lookup AS pl, team_lookup AS tl, \
-    	player_summary AS ps, team_summary AS ts WHERE tl.name = ts.name AND tl.team_id = pl.team_id AND ps.player_name = pl.name')
+        player_summary AS ps, team_summary AS ts WHERE tl.name = ts.name AND tl.team_id = pl.team_id AND ps.player_name = pl.name')
     players = cur.fetchall()
     max_bo = 0
     for player in players:
@@ -494,7 +493,26 @@ if 6 in exec_phase:
                 scenarios[teams][unk[6]][unk[0]] = {'fp' : [unk[7:10]], 'fppm' : [unk[3:6]], 'bo' : unk[2]}
             else: error('Already have an entry for ' + unk[0] + ' in scenario ' + teams + ' path ' + unk[6])
         #enumerate the possibilities
-        
+        paths = []
+        for scenario in scenarios.keys():
+            paths.append(list(scenarios[scenario].keys()))
+        print(paths)
+        length = 2**len(paths)
+        variations = ['']*length
+        for i in range(length):#total amount of variations
+            count = i
+            for j in range(len(paths)):#go through every path-set
+                for k in range(len(paths[j])):#select a single path from each path_set
+                    if (len(paths[j]) - k - 1)*(2**(len(paths[j]) - j - 1)) <= count:
+                        if variations[i] != '': variations[i] += ' AND '
+                        variations[i] += paths[j][k]
+                        count -= (len(paths[j]) - k - 1)*(2**(len(paths[j]) - j - 1))
+                        break
+            print(variations[i])
+
+
+
+           
 
     else: info('No branching scenarios detected')
 
