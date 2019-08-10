@@ -451,7 +451,6 @@ if 6 in exec_phase:
                     opp = list(match)[0]
                     bo = match[list(match)[0]]
                     if '/' in opp or '/' in team: tables = ['unk_fp_stats', 'unk_fppm_stats']#if opp or player's team is unknown
-                    if match_data['total'] > max_bo: max_bo = match_data['total']
                     cur.execute('SELECT * FROM ' + tables[0] + ' WHERE name = ?', [player[0]])
                     fp = cur.fetchall()
                     if len(fp) == 0:
@@ -504,7 +503,7 @@ if 6 in exec_phase:
             for j in range(len(paths)):#go through every path-set
                 for k in range(len(paths[j])):#select a single path from each path_set
                     if (len(paths[j]) - k - 1)*(2**(len(paths) - j - 1)) <= count:
-                        variations[i].append(paths[j][k].replace(' ', '_').replace('.', 'o'))
+                        variations[i].append(paths[j][k])
                         count -= (len(paths[j]) - k - 1)*(2**(len(paths) - j - 1))
                         break
         cur.execute("SELECT name FROM sqlite_master WHERE type = 'table';")
@@ -515,16 +514,36 @@ if 6 in exec_phase:
         #create len(variations) amount of tables and import the appropriate data into it
         for var in variations:
         	name = ''
-        	for scen in var: name += scen
+        	for scen in var: name += scen.replace('.', 'o').replace(' ', '_')
         	cur.execute('CREATE TABLE fp_rankings_' + name + ' AS SELECT * FROM fp_rankings WHERE 0')
         	cur.execute('INSERT INTO fp_rankings_' + name + ' SELECT * FROM fp_rankings')
-
-           
+        	cur.execute('CREATE TABLE fppm_rankings_' + name + ' AS SELECT * FROM fppm_rankings WHERE 0')
+        	cur.execute('INSERT INTO fppm_rankings_' + name + ' SELECT * FROM fppm_rankings')
+        	for scenario in scenarios.keys():
+        		for path in scenarios[scenario].keys():
+        			if path in var:
+        				for player in scenarios[scenario][path].keys():
+        					cur.execute('SELECT * FROM fp_rankings_' + name + ' WHERE name = ?', [player,])
+        					fp = cur.fetchall()
+        					cur.execute('UPDATE fp_rankings_' + name + ' SET num_games = ?, high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', \
+        						[fp[0][2] + scenarios[scenario][path][player]['bo'], \
+        						fp[0][3] + scenarios[scenario][path][player]['bo']*scenarios[scenario][path][player]['fp'][0][0], \
+                            	fp[0][4] + scenarios[scenario][path][player]['bo']*scenarios[scenario][path][player]['fp'][0][1], \
+                            	fp[0][5] + scenarios[scenario][path][player]['bo']*scenarios[scenario][path][player]['fp'][0][2], player])
+        					cur.execute('SELECT * FROM fppm_rankings_' + name + ' WHERE name = ?', [player,])
+        					fppm = cur.fetchall()
+        					cur.execute('UPDATE fppm_rankings_' + name + ' SET num_games = ?, high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', \
+        						[fppm[0][2] + scenarios[scenario][path][player]['bo'], \
+        						fppm[0][3] + scenarios[scenario][path][player]['bo']* scenarios[scenario][path][player]['fppm'][0][0], \
+                            	fppm[0][4] + scenarios[scenario][path][player]['bo']*scenarios[scenario][path][player]['fppm'][0][1], \
+                            	fppm[0][5] + scenarios[scenario][path][player]['bo']*scenarios[scenario][path][player]['fppm'][0][2], player])
 
     else: info('No branching scenarios detected')
 
     # Now create a super ranking for each player playing the most amount of matches for each role
     cur.execute('DELETE FROM rankings')
+    cur.execute('SELECT MAX(num_games) FROM fp_rankings')
+    max_bo = cur.fetchall()[0][0]
     ranks = {'Core' : {}, 'Mid' : {}, 'Support' : {}} 
     for role in roles.keys():
         loadRanks('fp_rankings', 'high_fp', role, max_bo, ranks)
