@@ -540,6 +540,8 @@ if 6 in exec_phase:
 
     else: info('No branching scenarios detected')
 
+
+    #TODO MAKE RANKINGS FOR EACH SCENARIO
     # Now create a super ranking for each player playing the most amount of matches for each role
     cur.execute('DELETE FROM rankings')
     cur.execute('SELECT MAX(num_games) FROM fp_rankings')
