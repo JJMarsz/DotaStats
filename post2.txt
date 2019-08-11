@@ -1,0 +1,9 @@
+**TLDR:** [Folder of Fantasy Point Statistics](https://drive.google.com/drive/u/2/folders/1N3cIWGDwqLEtrLnu04zWSfyMQw2gJjpu)
+
+**Reprise:**
+
+I made a mistake with my last [post](https://www.reddit.com/r/DotA2/comments/cjrlfy/ti9_fantasy_guide_a_preti_statistical_overview/), by only presenting numbers with my overview. Nobody wants [numbers](https://i.imgur.com/3c7Q4VX.gifv), you guys want graphs! So I have updated my 'Pre-TI9 Fantasy Book' with graphs and split up the bonus data into its own heat map. 
+
+Each graph depicts average fantasy points(FP) or fantasy points per minute(FPpM) with standard deviation versus player type. Previously I used 'win_avg' and 'loss_avg', but I have replaced that with 'high_fp'/'high_fppm' and 'low_fp'/'low_fppm' which are one standard deviation above and below the average respectively. This provides a better range of information as the range for each player now spans the most likely 68% of FP/FPpM for each player. The blue line represents the average across the players with the diamond specifying the average for the player name below. The green range above is the high fp/fppm while the red below is the low fp/fppm. The closer the range is to the average, the more consistent the player, while the further away from the average shows inconsistency. The columns below the low fp/fppm are solely there to aid in readability/tracing player to their stats, they serve no statistical purpose.
+
+Each role category got it's own bonus stats spreadsheet that depicts a heat map for each stat point in the same descending order as the corresponding role graph. This sheet is useful to to compare those silver/golds to figure out which are better with numbers and colors.
