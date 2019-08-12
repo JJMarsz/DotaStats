@@ -7,7 +7,7 @@ import math
 
 # Control variables
 fail_error = 1
-ti_mode = 1 # only scrape macthes after a specific date
+ti_mode = 1 # only scrape matches after a specific date
 test_mode = 0 # uses different DB
 log_lvl = 2 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
 exec_phase = [6] # 1, 2, 3, 4, 5, 6, 7
@@ -16,8 +16,7 @@ f_params = 'params.txt'
 f_matches = 'matches.txt'
 
 # Some useful constants
-start_2018 = 1513728000
-ti_start = 1547095680
+day_length = ‭86400‬
 od = 'https://api.opendota.com/api/'
 hdr = { 'User-Agent' : 'im a robot beepboop' }
 roles = {'1' : 'Core', '2' : 'Support', '4' : 'Mid'}
@@ -53,17 +52,16 @@ def getMatchLinks(team_id, num_tourneys, key):
     match_links = []
     t_count = 0
     last_t = ''
-    for i in range(int(num_tourneys)*20):
+    last_start = 0
+    for i in range(int(num_tourneys)*50):
         if i >= len(match_json):
             break
-        if match_json[i]['league_name'] != last_t:
+        if match_json[i]['league_name'] != last_t or (int(match_json['start_time'])+5*day_length < last_start and ti_mode):
             last_t = match_json[i]['league_name']
             t_count += 1
             if t_count > int(num_tourneys):
                 break
-        if match_json['start_time'] < ti_start and ti_mode:
-            break
-
+        last_start = int(match_json['start_time'])
         match_links.append(match_json[i]['match_id'])
     return match_links
 
@@ -263,7 +261,7 @@ if 1 in exec_phase:
 
                 # gather match stats
                 match_dp = [int(match_data['match_id']), int(match_data['series_id']), int(match_data['radiant_win']), int(match_data['dire_team_id']), \
-                            int(match_data['radiant_team_id']), int(match_data['duration']), match_data['league']['name'], int(match_data['start_time'])-start_2018, None]
+                            int(match_data['radiant_team_id']), int(match_data['duration']), match_data['league']['name'], int(match_data['start_time']), None]
                 debug(str(match_dp))
                 cur.execute('INSERT INTO match_data VALUES (?,?,?,?,?,?,?,?,?)', match_dp)
                 # gather player stats
@@ -562,7 +560,9 @@ if 6 in exec_phase:
 
 if 7 in exec_phase:
     info('Phase 7 - Assessing last day FP performance')
-
+    #first normalize current utc time
+    time = 
+    time = time - (time % day_length)
     conn.commit()
 
 info('Shutting down...')
