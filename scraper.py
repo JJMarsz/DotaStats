@@ -4,18 +4,22 @@ import sys
 import sqlite3
 import json
 import math
+from datetime import datetime
 
 # Control variables
-fail_error = 1
-ti_mode = 1 # only scrape matches after a specific date
-test_mode = 0 # uses different DB
-log_lvl = 2 #0-nothing, 1-ERROR,2-INFO,3-DEBUG
-exec_phase = [6] # 1, 2, 3, 4, 5, 6, 7
+fail_error = 1          # fail on the first error
+ti_mode = 1             # tournament counts only if matches atleast within 5 days of eachother (removes qualifier errors)
+test_mode = 0           # uses different DB
+log_lvl = 2             # 0-nothing, 1-ERROR,2-INFO,3-DEBUG
+exec_phase = [6]        # 1, 2, 3, 4, 5, 6, 7
+curr_utc = 0
+
+# File locations
 f_db = 'stats.db'
 f_params = 'params.txt'
 f_matches = 'matches.txt'
 
-# Some useful constants
+# Useful constants
 day_length = ‭86400‬
 od = 'https://api.opendota.com/api/'
 hdr = { 'User-Agent' : 'im a robot beepboop' }
@@ -220,6 +224,14 @@ def insertFPpMRank(player, opp, table, bo, fppm, scenario=None):
 
 def fetchTeams(scenario):
     return ''.join(sorted(scenario.replace(' beats ', '')))
+
+def normalizeTime(time=0):
+    if not time: 
+        if not curr_utc: time = datetime.utcnow()
+        else: time = curr_utc
+    time += day_length/3 # convert to china standard time
+    time -= (time % day_length)
+    return time
 
 #    
 # Main
@@ -561,8 +573,8 @@ if 6 in exec_phase:
 if 7 in exec_phase:
     info('Phase 7 - Assessing last day FP performance')
     #first normalize current utc time
-    time = 
-    time = time - (time % day_length)
+    time = normalizeTime()
+
     conn.commit()
 
 info('Shutting down...')
