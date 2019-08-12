@@ -230,7 +230,8 @@ def normalizeTime(time=0):
         if not curr_utc: time = datetime.utcnow()
         else: time = curr_utc
     time += day_length/3 # convert to china standard time
-    time -= (time % day_length)
+    time -= (time % day_length)# get start of day local time
+    time += daylength/3 # convert back to UTC
     return time
 
 #    
@@ -571,9 +572,16 @@ if 6 in exec_phase:
     conn.commit()
 
 if 7 in exec_phase:
-    info('Phase 7 - Assessing last day FP performance')
-    #first normalize current utc time
-    time = normalizeTime()
+    info('Phase 7 - Assessing a day of FP performance')
+    #first normalize current utc time to time zone of ti
+    start_today = normalizeTime()
+    start_yest = start_today - day_length
+    # retrieve all games in this range
+    cur.execute('SELECT * FROM match_data WHERE start_time < ? AND start_time > ?', [start_today, start_yest,])
+    matches = cur.fetchall()
+    
+    for match in matches:
+
 
     conn.commit()
 
