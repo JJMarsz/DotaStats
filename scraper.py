@@ -11,8 +11,8 @@ fail_error = 1          # fail on the first error
 ti_mode = 1             # tournament counts only if matches atleast within 5 days of eachother (removes qualifier errors)
 test_mode = 0           # uses different DB
 log_lvl = 2             # 0-nothing, 1-ERROR,2-INFO,3-DEBUG
-exec_phase = [6]        # 1, 2, 3, 4, 5, 6, 7
-curr_utc = 0
+exec_phase = [7]        # 1, 2, 3, 4, 5, 6, 7
+curr_utc = 1564352276
 
 # File locations
 f_db = 'stats.db'
@@ -20,7 +20,7 @@ f_params = 'params.txt'
 f_matches = 'matches.txt'
 
 # Useful constants
-day_length = ‭86400‬
+day_length = 86400
 od = 'https://api.opendota.com/api/'
 hdr = { 'User-Agent' : 'im a robot beepboop' }
 roles = {'1' : 'Core', '2' : 'Support', '4' : 'Mid'}
@@ -227,11 +227,10 @@ def fetchTeams(scenario):
 
 def normalizeTime(time=0):
     if not time: 
-        if not curr_utc: time = datetime.utcnow()
+        if not curr_utc: time = (datetime.utcnow()-datetime(1970,1,1)).total_seconds()
         else: time = curr_utc
-    time += day_length/3 # convert to china standard time
-    time -= (time % day_length)# get start of day local time
-    time += daylength/3 # convert back to UTC
+    time -= (time % day_length)# get start of day utc time
+    time += day_length/3 # add timezone offset
     return time
 
 #    
@@ -579,10 +578,12 @@ if 7 in exec_phase:
     # retrieve all games in this range
     cur.execute('SELECT * FROM match_data WHERE start_time < ? AND start_time > ?', [start_today, start_yest,])
     matches = cur.fetchall()
-    
+    player_data = {}
     for match in matches:
-
-
+    	cur.execute('SELECT series_id, pl.name, pl.role, kills, deaths, lh_and_d, gpm, tower_kills, roshan_kills, teamfight, obs_placed, camps_stacked, rune_pickups, first_blood, stuns \
+    		FROM match_data AS md, player_data AS pd, player_lookup AS pl WHERE pd.match_id = md.match_id AND pl.account_id = pd.account_id AND pd.match_id = ?', [match[0]])
+    	players = cur.fetchall()
+    	print(len(players))
     conn.commit()
 
 info('Shutting down...')
