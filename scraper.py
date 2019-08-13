@@ -193,10 +193,10 @@ def flareData(stats):
     stats[8]*points['camps_stacked'], stats[9]*points['rune_pickups'], stats[10]*points['first_blood'], \
     stats[11]*points['stuns']]
 
-def fp(stat):
-    return stat[0]*points['kills'] + stat[1]*points['deaths'] + 3 + stat[2]*points['lh_and_d'] + stat[3]*points['gpm'] + \
-            stat[4]*points['tower_kills'] + stat[5]*points['roshan_kills'] + stat[6]*points['teamfight'] + stat[7]*points['obs_placed'] + \
-            stat[8]*points['camps_stacked'] + stat[9]*points['rune_pickups'] + stat[10]*points['first_blood'] + stat[11]*points['stuns']
+def fpFromStr(stat):
+    return int(stat[0])*points['kills'] + int(stat[1])*points['deaths'] + 3 + int(stat[2])*points['lh_and_d'] + int(stat[3])*points['gpm'] + \
+            int(stat[4])*points['tower_kills'] + int(stat[5])*points['roshan_kills'] + float(stat[6])*points['teamfight'] + int(stat[7])*points['obs_placed'] + \
+            int(stat[8])*points['camps_stacked'] + int(stat[9])*points['rune_pickups'] + int(stat[10])*points['first_blood'] + float(stat[11])*points['stuns']
 
 def loadRanks(table, col, role, max_bo, ranks):
     cur.execute('SELECT name, ' + col + ' FROM ' + table + ' WHERE num_games = ? AND role = ? ORDER BY ' + col + ' ASC', [max_bo, roles[role]])
@@ -232,6 +232,14 @@ def normalizeTime(time=0):
     time -= (time % day_length)# get start of day utc time
     time += day_length/3 # add timezone offset
     return time
+
+def aggMax(l):
+    sel = best_of[str(len(l))]
+    ret_val = 0;
+    for i in range(sel):
+        ret_val += max(l)
+        l[l.index(max(l))] = -1
+    return ret_val
 
 #    
 # Main
@@ -572,6 +580,7 @@ if 6 in exec_phase:
 
 if 7 in exec_phase:
     info('Phase 7 - Assessing a day of FP performance')
+    cur.execute('DELETE FROM match_day_summary')
     #first normalize current utc time to time zone of ti
     start_today = normalizeTime()
     start_yest = start_today - day_length
@@ -580,10 +589,23 @@ if 7 in exec_phase:
     matches = cur.fetchall()
     player_data = {}
     for match in matches:
-    	cur.execute('SELECT series_id, pl.name, pl.role, kills, deaths, lh_and_d, gpm, tower_kills, roshan_kills, teamfight, obs_placed, camps_stacked, rune_pickups, first_blood, stuns \
-    		FROM match_data AS md, player_data AS pd, player_lookup AS pl WHERE pd.match_id = md.match_id AND pl.account_id = pd.account_id AND pd.match_id = ?', [match[0]])
-    	players = cur.fetchall()
-    	print(len(players))
+        cur.execute('SELECT series_id, pl.name, pl.role, kills, deaths, lh_and_d, gpm, tower_kills, roshan_kills, teamfight, obs_placed, camps_stacked, rune_pickups, first_blood, stuns \
+            FROM match_data AS md, player_data AS pd, player_lookup AS pl WHERE pd.match_id = md.match_id AND pl.account_id = pd.account_id AND pd.match_id = ?', [match[0]])
+        players = cur.fetchall()
+        
+        for player in players:
+            if player[1] not in player_data.keys(): player_data[player[1]] = {}
+            if player[0] not in player_data[player[1]].keys(): player_data[player[1]][player[0]] = []
+            player_data[player[1]]['role'] = player[2]
+            player_data[player[1]][player[0]].append(fpFromStr(player[3:]))
+    
+    # now select max amount
+    for player in player_data.keys():
+        for series in player_data[player].keys():
+            if series != 'role':
+                cur.execute('INSERT INTO match_day_summary VALUES (?,?,?)', [player, player_data[player]['role'], aggMax(player_data[player][series])])
+
+
     conn.commit()
 
 info('Shutting down...')
