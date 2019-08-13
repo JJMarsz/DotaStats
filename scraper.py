@@ -9,9 +9,9 @@ from datetime import datetime
 # Control variables
 fail_error = 1          # fail on the first error
 ti_mode = 1             # tournament counts only if matches atleast within 5 days of eachother (removes qualifier errors)
-test_mode = 0           # uses different DB
+test_mode = 1           # uses different DB
 log_lvl = 2             # 0-nothing, 1-ERROR,2-INFO,3-DEBUG
-exec_phase = [7]        # 1, 2, 3, 4, 5, 6, 7
+exec_phase = [1,2,3,4,5,6,7]        # 1, 2, 3, 4, 5, 6, 7
 curr_utc = 1564352276
 
 # File locations
@@ -60,12 +60,12 @@ def getMatchLinks(team_id, num_tourneys, key):
     for i in range(int(num_tourneys)*50):
         if i >= len(match_json):
             break
-        if match_json[i]['league_name'] != last_t or (int(match_json['start_time'])+5*day_length < last_start and ti_mode):
+        if match_json[i]['league_name'] != last_t or (int(match_json[i]['start_time'])+5*day_length < last_start and ti_mode):
             last_t = match_json[i]['league_name']
             t_count += 1
             if t_count > int(num_tourneys):
                 break
-        last_start = int(match_json['start_time'])
+        last_start = int(match_json[i]['start_time'])
         match_links.append(match_json[i]['match_id'])
     return match_links
 
@@ -160,7 +160,7 @@ def fetchFPStats(queryTail, params):
     raw_data = cur.fetchall()
     retlist = []
     for line in raw_data:
-        retlist.append([fp(line), (60*fp(line))/line[12]] + list(line))
+        retlist.append([fpFromStr(line), (60*fpFromStr(line))/line[12]] + list(line))
     return retlist
 
 def fp(stats):
@@ -403,6 +403,9 @@ if 4 in exec_phase:
     heroes = cur.fetchall()
     for hero in heroes:
         stats = fetchFPStats('player_data AS pd, hero_lookup AS hl, match_data AS md WHERE md.match_id = pd.match_id AND pd.hero_id = hl.hero_id AND pd.hero_id = ?', [hero[0],])
+        if not len(stats):
+            info('No games played on ' + hero[1])
+            continue
         std_dev_fp = stdDev(extractColumn(stats, 0))
         std_dev_fppm = stdDev(extractColumn(stats, 1))
         avg_fp = avg(extractColumn(stats, 0))
