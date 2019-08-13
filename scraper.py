@@ -85,7 +85,7 @@ def fetchTeams(scenario): return ''.join(sorted(scenario.replace(' beats ', ''))
 def parseParams(params):
     dic = {'key' : params[:params.find('\n')]}
     params = params[params.find('\n')+1:]
-    dic = {'num_tourny' : params[:params.find('\n')]}
+    dic['num_tourny'] = params[:params.find('\n')]
     params = params[params.find('\n')+1:]
     dic['teams'] = []
     while params.find('\n') != -1:
@@ -151,7 +151,7 @@ def getFPBonusStats(stats):
 # sums all of the bonus stats into a single data point
 def aggFP(stat):
     val = 0
-    l = getFPData(stat)
+    l = getFPBonusStats(stat)
     for i in l: val += i
     return val
 
@@ -225,19 +225,19 @@ def normalizeTime(time=0):
 #############################
 
 # returns upper bound on number of matches
-def getMatchLinks(team_id, num_tourneys, key):
+def getMatchLinks(team_id, num_tournys, key):
     match_json = apiCall('teams/' + team_id + '/matches', key)
     match_links = []
     t_count = 0
     last_t = ''
     last_start = 0
-    for i in range(int(num_tourneys)*50):
+    for i in range(int(num_tournys)*50):
         if i >= len(match_json):
             break
         if match_json[i]['league_name'] != last_t or (int(match_json[i]['start_time'])+5*day_length < last_start and ti_mode):
             last_t = match_json[i]['league_name']
             t_count += 1
-            if t_count > int(num_tourneys):
+            if t_count > int(num_tournys):
                 break
         last_start = int(match_json[i]['start_time'])
         match_links.append(match_json[i]['match_id'])
@@ -332,7 +332,7 @@ if 1 in exec_phase:
     for k in params['teams']:
         info('Scraping team ' + k + '\'s matches')
         match_ids = getMatchLinks(k, params['num_tourny'], key)
-        info('Discovered ' + str(len(match_ids)) + ' matches in last ' + params['num_tourney'] + ' tournaments...')
+        info('Discovered ' + str(len(match_ids)) + ' matches in last ' + params['num_tourny'] + ' tournaments...')
         r = 0
         for match_id in match_ids:
             cur.execute('SELECT * FROM match_data WHERE match_id = ?', [match_id,])
@@ -366,7 +366,7 @@ if 2 in exec_phase:
     teams = extractColumn(cur.fetchall())
     # verify team_lookup is filled
     info('Generating team_lookup')
-    for k in params.keys():
+    for k in params['teams']:
         if int(k) in teams:
             info('Already have team ' + k)
         else:
@@ -656,7 +656,7 @@ if 6 in exec_phase:
             if player[1] not in player_data.keys(): player_data[player[1]] = {}
             if player[0] not in player_data[player[1]].keys(): player_data[player[1]][player[0]] = []
             player_data[player[1]]['role'] = player[2]
-            player_data[player[1]][player[0]].append(fpFromStr(player[3:]))
+            player_data[player[1]][player[0]].append(aggFP(player[3:]))
     
     # now select max amount
     for player in player_data.keys():
