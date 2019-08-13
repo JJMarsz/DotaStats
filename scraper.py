@@ -11,7 +11,7 @@ fail_error = 1          # fail on the first error
 ti_mode = 1             # tournament counts only if matches atleast within 5 days of eachother (removes qualifier errors)
 test_mode = 1           # uses different DB
 log_lvl = 2             # 0-nothing, 1-ERROR,2-INFO,3-DEBUG
-exec_phase = [1,2,3,4,5,6,7]        # 1, 2, 3, 4, 5, 6, 7
+exec_phase = [1,2,3,4,5,6]        # 1, 2, 3, 4, 5, 6
 curr_utc = 1564352276
 
 # File locations
@@ -446,12 +446,7 @@ if 4 in exec_phase:
 #    conn.commit()
 
 if 5 in exec_phase:
-    info('Phase 5 - Scraping next days matches')
-
-    conn.commit()
-
-if 6 in exec_phase:
-    info('Phase 6 - Generating rankings')
+    info('Phase 5 - Generating rankings')
     match_file = open(f_matches, 'r')
     matches = parseMatches(match_file);
     match_file.close()
@@ -581,8 +576,8 @@ if 6 in exec_phase:
 
     conn.commit()
 
-if 7 in exec_phase:
-    info('Phase 7 - Assessing a day of FP performance')
+if 6 in exec_phase:
+    info('Phase 6 - Assessing a day of FP performance')
     cur.execute('DELETE FROM match_day_summary')
     #first normalize current utc time to time zone of ti
     start_today = normalizeTime()
