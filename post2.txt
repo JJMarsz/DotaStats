@@ -28,33 +28,21 @@ As you can see I am only using players that play on teams that are playing the m
 
 *Super Rankings:*
 
-*Super Rankings (No Double Dipping):*
-
 *Favor High FP:*
-
-*Favor High FP (No Double Dipping):*
 
 *Favor Avg FP:*
 
-*Favor Avg Fp (No Double Dipping):*
-
 *Favor Low FP:*
-
-*Favor Low FP (No Double Dipping):*
 
 *Favor High FPpM:*
 
-*Favor High FPpM (No Double Dipping):*
-
 *Favor Avg FPpM:*
-
-*Favor Avg FppM (No Double Dipping):*
 
 *Favor Low FPpM:*
 
-*Favor Low FPpM (No Double Dipping):*
+*Personal Picks:*
 
 
 **Conclusion:**
 
-Although I am presenting full lineups of play cards to pick, please do not take my words as gospel. I am no expert, I only aggregated data and extrapolated from it. If you reach a different conclusion from some other data or my data, thats fine, probably more accurate anyways. If I missed something or if anyone has any suggestions, please let me know, I'd be glad to add something new to these rankings/data. All of this was gathered and extrapolated using a script I made, so obtaining subsequent day's rankings and adding previous day's data to the database can be done very quickly. I will keep a running tally of what each version of selection and my selection obtained so we can see which one tends to o better. And with that, I wish you the best of luck in the FP challenge and remember to put your predictions in by 8pm CST!
+Although I am presenting full lineups of play cards to pick, please do not take my words as gospel. I am no expert, I only aggregated data and extrapolated from it. If you reach a different conclusion from some other data set or my data set, thats fine, probably more accurate anyways. If I missed something or if anyone has any suggestions, please let me know, I'd be glad to add something new to these rankings/data. All of this was gathered and extrapolated using a script I made, so obtaining subsequent day's rankings and adding previous day's data to the database can be done very quickly. I will keep a running tally of what each version of selection and my selection obtained so we can see which one tends to o better. And with that, I wish you the best of luck in the FP challenge and remember to put your predictions in by 8pm CST!
