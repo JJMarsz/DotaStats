@@ -155,6 +155,28 @@ def aggFP(stat):
     for i in l: val += i
     return val
 
+# inserts FPpM rank using repeatable process
+def insertFPpMRank(player, opp, table, bo, fppm, scenario=None):
+    cur.execute('SELECT ts.avg_duration FROM team_summary AS ts, team_lookup AS tl WHERE tl.name = ts.name AND tl.tag IN (?,?)', [player[1], opp])
+    ts = cur.fetchall()
+    durs = extractColumn(ts, 0)
+    length = avg([secToMin(timeToSec(durs[0])), secToMin(timeToSec(durs[1]))])
+    if len(fppm)==0 or 'unk_' in table:
+        cur.execute('INSERT INTO ' + table + ' VALUES (?,?,?,?,?,?,?)', [player[0], roles[player[2]], bo, bo*player[7]*length, bo*player[8]*length, \
+            bo*player[9]*length, scenario])
+    else:            
+        cur.execute('UPDATE ' + table + ' SET num_games  = ?, high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [bo + fppm[0][2], fppm[0][3] + bo*player[7]*length, \
+            fppm[0][4] + bo*player[8]*length, fppm[0][5] + bo*player[9]*length, player[0]])
+
+# aggregates the max values of a fp list
+def aggMax(l):
+    sel = best_of[str(len(l))]
+    ret_val = 0;
+    for i in range(sel):
+        ret_val += max(l)
+        l[l.index(max(l))] = -1
+    return ret_val
+
 
 ####################
 #                  #
@@ -196,27 +218,11 @@ def normalizeTime(time=0):
     return time
 
 
-####################
-#                  #
-#  Math Functions  #
-#                  #
-####################
-
-
-# returns average of on array
-def avg(arr):
-    val = 0
-    for i in arr:
-        val += i
-    return val/len(arr)
-
-#returns std dev of array
-def stdDev(arr):
-    mean = avg(arr)
-    var = 0
-    for i in arr:
-        var += (i-mean)*(i-mean)
-    return math.sqrt(var/len(arr))
+#############################
+#                           #
+#  List/Dict/SQL Functions  #
+#                           #
+#############################
 
 # returns upper bound on number of matches
 def getMatchLinks(team_id, num_tourneys, key):
@@ -251,16 +257,6 @@ def extractColumn(q, i=0):
         data.append(d[i])
     return data
 
-
-# header for summary table reseting
-def summaryHeader(table_name):
-    cur.execute('SELECT * FROM ' + table_name)
-    if len(cur.fetchall()) > 0:
-        info('Flushing ' + table_name + ' table...')
-        cur.execute('DELETE FROM ' + table_name)
-        conn.commit()
-    info('Populating '+ table_name + ' table...')
-
 # load ranking data for specified table and type
 def loadRanks(table, col, role, max_bo, ranks):
     cur.execute('SELECT name, ' + col + ' FROM ' + table + ' WHERE num_games = ? AND role = ? ORDER BY ' + col + ' ASC', [max_bo, roles[role]])
@@ -271,35 +267,47 @@ def loadRanks(table, col, role, max_bo, ranks):
         else:
             ranks[roles[role]][single_ranks[i][0]] = i+1
 
+# header for summary table reseting
+def summaryHeader(table_name):
+    cur.execute('SELECT * FROM ' + table_name)
+    if len(cur.fetchall()) > 0:
+        info('Flushing ' + table_name + ' table...')
+        cur.execute('DELETE FROM ' + table_name)
+        conn.commit()
+    info('Populating '+ table_name + ' table...')
 
-# inserts FPpM rank using repeatable process
-def insertFPpMRank(player, opp, table, bo, fppm, scenario=None):
-    cur.execute('SELECT ts.avg_duration FROM team_summary AS ts, team_lookup AS tl WHERE tl.name = ts.name AND tl.tag IN (?,?)', [player[1], opp])
-    ts = cur.fetchall()
-    durs = extractColumn(ts, 0)
-    length = avg([secToMin(timeToSec(durs[0])), secToMin(timeToSec(durs[1]))])
-    if len(fppm)==0 or 'unk_' in table:
-        cur.execute('INSERT INTO ' + table + ' VALUES (?,?,?,?,?,?,?)', [player[0], roles[player[2]], bo, bo*player[7]*length, bo*player[8]*length, \
-            bo*player[9]*length, scenario])
-    else:            
-        cur.execute('UPDATE ' + table + ' SET num_games  = ?, high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [bo + fppm[0][2], fppm[0][3] + bo*player[7]*length, \
-            fppm[0][4] + bo*player[8]*length, fppm[0][5] + bo*player[9]*length, player[0]])
 
-# aggregates the max values of a fp list
-def aggMax(l):
-    sel = best_of[str(len(l))]
-    ret_val = 0;
-    for i in range(sel):
-        ret_val += max(l)
-        l[l.index(max(l))] = -1
-    return ret_val
+####################
+#                  #
+#  Math Functions  #
+#                  #
+####################
 
-#    
-# Main
-#
 
-# Validate args
+# returns average of on array
+def avg(arr):
+    val = 0
+    for i in arr:
+        val += i
+    return val/len(arr)
 
+#returns std dev of array
+def stdDev(arr):
+    mean = avg(arr)
+    var = 0
+    for i in arr:
+        var += (i-mean)*(i-mean)
+    return math.sqrt(var/len(arr))
+
+
+##########
+#        #
+#  MAIN  #
+#        #
+##########
+
+
+# input validation
 if(len(sys.argv) > 1):
     error("Too many arguments :: Format is python scraper.py")
     sys.exit()
