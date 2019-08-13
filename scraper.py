@@ -28,9 +28,13 @@ points = {'kills' : 0.3, 'deaths' : -0.3, 'lh_and_d' : 0.003, 'gpm' : 0.002, 'to
             'obs_placed' : 0.5, 'camps_stacked' : 0.5, 'rune_pickups' : 0.25, 'first_blood' : 4, 'stuns' : 0.05}# Deaths +3
 best_of = {'1':1, '2':2, '3':2, '5':3}
 
-#
-# Subroutines
-#
+
+###################
+#                 #
+#  Log Functions  #
+#                 #
+###################
+
 
 # error log
 def error(msg):
@@ -46,51 +50,56 @@ def info(msg):
 def debug(msg):
     if log_lvl > 2: print('[DEBUG] :: ' + msg)
 
-# appends the key to the string
-def apiCall(url, key):
-    return json.loads(requests.get(od + url + '?api_key=' + key, headers=hdr).text)
 
-# returns upper bound on number of matches
-def getMatchLinks(team_id, num_tourneys, key):
-    match_json = apiCall('teams/' + team_id + '/matches', key)
-    match_links = []
-    t_count = 0
-    last_t = ''
-    last_start = 0
-    for i in range(int(num_tourneys)*50):
-        if i >= len(match_json):
-            break
-        if match_json[i]['league_name'] != last_t or (int(match_json[i]['start_time'])+5*day_length < last_start and ti_mode):
-            last_t = match_json[i]['league_name']
-            t_count += 1
-            if t_count > int(num_tourneys):
-                break
-        last_start = int(match_json[i]['start_time'])
-        match_links.append(match_json[i]['match_id'])
-    return match_links
+################
+#              #
+#  One-Liners  #
+#              #
+################
+
+
+# appends key to string and ap calls opendota
+def apiCall(url, key): return json.loads(requests.get(od + url + '?api_key=' + key, headers=hdr).text)
+# splits names
+def splitName(names): return [names[:names.find('/')], names[names.find('/')+1:]]
+# returns a unique hash of two teams
+def fetchTeams(scenario): return ''.join(sorted(scenario.replace(' beats ', '')))
+
+
+#########################
+#                       #
+#  Parameter Functions  #
+#                       #
+#########################
+
 
 # parse input params
 # Format:
 # key-string
-# team_id1 num_tournaments
-# team_id2 num_tournaments
+# num_tournaments
+# team_id1 
+# team_id2 
 # ...
-# team_idN num_tournaments
+# team_idN 
 # (MUST HAVE NEW LINE AT END)
 def parseParams(params):
     dic = {'key' : params[:params.find('\n')]}
     params = params[params.find('\n')+1:]
+    dic = {'num_tourny' : params[:params.find('\n')]}
+    params = params[params.find('\n')+1:]
+    dic['teams'] = []
     while params.find('\n') != -1:
-        dic[params[:params.find(' ')]] = params[params.find(' ')+1:params.find('\n')]
+        dic['teams'].append(params[:params.find('\n')])
         params = params[params.find('\n')+1:]
     return dic
-    
+
 # parse next day matches
 # Format:
 # team_tag1 team_tag2 (BO#) <-- Normal Case
 # team_tag3 team_tag4 (BO#)
 # team_tag5 team_tag3/team_tag4 (BO#)  <-- Case where opponent is winner of another series
 # ...
+# team_tagN team_tag(N+1) (BO#)
 # (MUST HAVE NEW LINE AT END)
 def parseMatches(match_file):
     cur.execute('SELECT * FROM team_lookup')
@@ -113,6 +122,122 @@ def parseMatches(match_file):
 
     return dic
 
+
+#############################
+#                           #
+#  Fantasy Point Functions  #
+#                           #
+#############################
+
+
+# fetches FP stats from player_data based on conditons in query_tail and using params
+def fetchFPStats(queryTail, params):
+    cur.execute('SELECT kills, deaths, lh_and_d, gpm, tower_kills, roshan_kills, teamfight, obs_placed, camps_stacked, rune_pickups, \
+            first_blood, stuns, duration FROM ' + queryTail, params)
+    raw_data = cur.fetchall()
+    retlist = []
+    for line in raw_data:
+        retlist.append([aggFP(line), (60*aggFP(line))/line[12]] + list(line))
+    return retlist
+
+# optains fp for each bonus stat and returns a list of results
+def getFPBonusStats(stats):
+    return [int(stats[0])*points['kills'], int(stats[1])*points['deaths'] + 3, \
+    int(stats[2])*points['lh_and_d'], int(stats[3])*points['gpm'], int(stats[4])*points['tower_kills'], \
+    int(stats[5])*points['roshan_kills'], float(stats[6])*points['teamfight'], int(stats[7])*points['obs_placed'], \
+    int(stats[8])*points['camps_stacked'], int(stats[9])*points['rune_pickups'], int(stats[10])*points['first_blood'], \
+    float(stats[11])*points['stuns']]
+
+# sums all of the bonus stats into a single data point
+def aggFP(stat):
+    val = 0
+    l = getFPData(stat)
+    for i in l: val += i
+    return val
+
+
+####################
+#                  #
+#  Time Functions  #
+#                  #
+####################
+
+
+# converts seconds to hh:mm:ss
+def secToTime(sec):
+    s = str(int(sec % 60))
+    h = int(sec / 3600)
+    if len(s) == 1: s = '0' + s
+    if h > 0: 
+        m = str(int((sec%3600)/60))
+        if len(m) == 1: m = '0' + m
+        return str(h) + ':' + m + ':' + s
+    else: return str(int(sec/60)) + ':' + s
+
+# converts hh:mm:ss to seconds
+def timeToSec(time):
+    time = time.strip()
+    if len(time) > 5: 
+        return int(time[6:8]) + int(time[3:5])*60 + int(time[0:2])*3600
+    else: 
+        return int(time[3:5]) + int(time[0:2])*60
+
+# converts seconds to minutes
+def secToMin(sec):
+    return round(sec/60)
+
+# using curr_utc or specified utc, fetch converted utc time
+def normalizeTime(time=0):
+    if not time: 
+        if not curr_utc: time = (datetime.utcnow()-datetime(1970,1,1)).total_seconds()
+        else: time = curr_utc
+    time -= (time % day_length)# get start of day utc time
+    time += day_length/3 # add timezone offset
+    return time
+
+
+####################
+#                  #
+#  Math Functions  #
+#                  #
+####################
+
+
+# returns average of on array
+def avg(arr):
+    val = 0
+    for i in arr:
+        val += i
+    return val/len(arr)
+
+#returns std dev of array
+def stdDev(arr):
+    mean = avg(arr)
+    var = 0
+    for i in arr:
+        var += (i-mean)*(i-mean)
+    return math.sqrt(var/len(arr))
+
+# returns upper bound on number of matches
+def getMatchLinks(team_id, num_tourneys, key):
+    match_json = apiCall('teams/' + team_id + '/matches', key)
+    match_links = []
+    t_count = 0
+    last_t = ''
+    last_start = 0
+    for i in range(int(num_tourneys)*50):
+        if i >= len(match_json):
+            break
+        if match_json[i]['league_name'] != last_t or (int(match_json[i]['start_time'])+5*day_length < last_start and ti_mode):
+            last_t = match_json[i]['league_name']
+            t_count += 1
+            if t_count > int(num_tourneys):
+                break
+        last_start = int(match_json[i]['start_time'])
+        match_links.append(match_json[i]['match_id'])
+    return match_links
+
+
 # Given a list of player dictionaries, returns dict with given id
 def getPlayer(l, acc_id):
     for p in l:
@@ -126,26 +251,8 @@ def extractColumn(q, i=0):
         data.append(d[i])
     return data
 
-def secToTime(sec):
-    s = str(int(sec % 60))
-    h = int(sec / 3600)
-    if len(s) == 1: s = '0' + s
-    if h > 0: 
-        m = str(int((sec%3600)/60))
-        if len(m) == 1: m = '0' + m
-        return str(h) + ':' + m + ':' + s
-    else: return str(int(sec/60)) + ':' + s
 
-def timeToSec(time):
-    time = time.strip()
-    if len(time) > 5: 
-        return int(time[6:8]) + int(time[3:5])*60 + int(time[0:2])*3600
-    else: 
-        return int(time[3:5]) + int(time[0:2])*60
-
-def secToMin(sec):
-    return round(sec/60)
-
+# header for summary table reseting
 def summaryHeader(table_name):
     cur.execute('SELECT * FROM ' + table_name)
     if len(cur.fetchall()) > 0:
@@ -154,50 +261,7 @@ def summaryHeader(table_name):
         conn.commit()
     info('Populating '+ table_name + ' table...')
 
-def fetchFPStats(queryTail, params):
-    cur.execute('SELECT kills, deaths, lh_and_d, gpm, tower_kills, roshan_kills, teamfight, obs_placed, camps_stacked, rune_pickups, \
-            first_blood, stuns, duration FROM ' + queryTail, params)
-    raw_data = cur.fetchall()
-    retlist = []
-    for line in raw_data:
-        retlist.append([fpFromStr(line), (60*fpFromStr(line))/line[12]] + list(line))
-    return retlist
-
-def fp(stats):
-    stat_dp = stats[0][0]*points['kills'] + stats[0][1]*points['deaths'] + 3 + stats[0][2]*points['lh_and_d'] + stats[0][3]*points['gpm'] + \
-            stats[0][4]*points['tower_kills'] + stats[0][5]*points['roshan_kills'] + stats[0][6]*points['teamfight'] + stats[0][7]*points['obs_placed'] + \
-            stats[0][8]*points['camps_stacked'] + stats[0][9]*points['rune_pickups'] + stats[0][10]*points['first_blood'] + stats[0][11]*points['stuns']
-    stats[0] = list(stats[0])
-    for i in range(len(stats[0])):
-        stats[0][i] = round(stats[0][i], 4)
-    stat_dp = round(stat_dp, 4)
-    return stat_dp
-
-def avg(arr):
-    val = 0
-    for i in arr:
-        val += i
-    return val/len(arr)
-
-def stdDev(arr):
-    mean = avg(arr)
-    var = 0
-    for i in arr:
-        var += (i-mean)*(i-mean)
-    return math.sqrt(var/len(arr))
-
-def flareData(stats):
-    return [stats[0]*points['kills'], stats[1]*points['deaths'] + 3, \
-    stats[2]*points['lh_and_d'], stats[3]*points['gpm'], stats[4]*points['tower_kills'], \
-    stats[5]*points['roshan_kills'], stats[6]*points['teamfight'], stats[7]*points['obs_placed'], \
-    stats[8]*points['camps_stacked'], stats[9]*points['rune_pickups'], stats[10]*points['first_blood'], \
-    stats[11]*points['stuns']]
-
-def fpFromStr(stat):
-    return int(stat[0])*points['kills'] + int(stat[1])*points['deaths'] + 3 + int(stat[2])*points['lh_and_d'] + int(stat[3])*points['gpm'] + \
-            int(stat[4])*points['tower_kills'] + int(stat[5])*points['roshan_kills'] + float(stat[6])*points['teamfight'] + int(stat[7])*points['obs_placed'] + \
-            int(stat[8])*points['camps_stacked'] + int(stat[9])*points['rune_pickups'] + int(stat[10])*points['first_blood'] + float(stat[11])*points['stuns']
-
+# load ranking data for specified table and type
 def loadRanks(table, col, role, max_bo, ranks):
     cur.execute('SELECT name, ' + col + ' FROM ' + table + ' WHERE num_games = ? AND role = ? ORDER BY ' + col + ' ASC', [max_bo, roles[role]])
     single_ranks = cur.fetchall()
@@ -207,9 +271,8 @@ def loadRanks(table, col, role, max_bo, ranks):
         else:
             ranks[roles[role]][single_ranks[i][0]] = i+1
 
-def splitName(names):
-    return [names[:names.find('/')], names[names.find('/')+1:]]
 
+# inserts FPpM rank using repeatable process
 def insertFPpMRank(player, opp, table, bo, fppm, scenario=None):
     cur.execute('SELECT ts.avg_duration FROM team_summary AS ts, team_lookup AS tl WHERE tl.name = ts.name AND tl.tag IN (?,?)', [player[1], opp])
     ts = cur.fetchall()
@@ -222,17 +285,7 @@ def insertFPpMRank(player, opp, table, bo, fppm, scenario=None):
         cur.execute('UPDATE ' + table + ' SET num_games  = ?, high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [bo + fppm[0][2], fppm[0][3] + bo*player[7]*length, \
             fppm[0][4] + bo*player[8]*length, fppm[0][5] + bo*player[9]*length, player[0]])
 
-def fetchTeams(scenario):
-    return ''.join(sorted(scenario.replace(' beats ', '')))
-
-def normalizeTime(time=0):
-    if not time: 
-        if not curr_utc: time = (datetime.utcnow()-datetime(1970,1,1)).total_seconds()
-        else: time = curr_utc
-    time -= (time % day_length)# get start of day utc time
-    time += day_length/3 # add timezone offset
-    return time
-
+# aggregates the max values of a fp list
 def aggMax(l):
     sel = best_of[str(len(l))]
     ret_val = 0;
@@ -268,10 +321,10 @@ cur = conn.cursor()
 if 1 in exec_phase:
     info('Phase 1 - Scraping match and player data from OpenDota')
     # loop on each team
-    for k in params.keys():
+    for k in params['teams']:
         info('Scraping team ' + k + '\'s matches')
-        match_ids = getMatchLinks(k, params[k], key)
-        info('Discovered ' + str(len(match_ids)) + ' matches in last ' + params[k] + ' tournaments...')
+        match_ids = getMatchLinks(k, params['num_tourny'], key)
+        info('Discovered ' + str(len(match_ids)) + ' matches in last ' + params['num_tourney'] + ' tournaments...')
         r = 0
         for match_id in match_ids:
             cur.execute('SELECT * FROM match_data WHERE match_id = ?', [match_id,])
@@ -384,7 +437,7 @@ if 4 in exec_phase:
         #    AND md.match_id = pd.match_id AND tl.team_id = pl.team_id AND pd.account_id = pl.account_id AND pd.account_id = ?', [player[0],])
         #loss_dp = getAvgDataPoint(losses)
         cur.execute('INSERT INTO player_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [player[1], roles[player[3]], std_dev_fp, avg_fp + std_dev_fp, avg_fp, avg_fp - std_dev_fp, \
-            std_dev_fppm, avg_fppm + std_dev_fppm, avg_fppm, avg_fppm - std_dev_fppm] + flareData(fp_stats))
+            std_dev_fppm, avg_fppm + std_dev_fppm, avg_fppm, avg_fppm - std_dev_fppm] + getFPBonusStats(fp_stats))
     conn.commit()
 
     summaryHeader('role_summary')
@@ -395,7 +448,7 @@ if 4 in exec_phase:
         fp_stats = []
         for i in range(len(stats[0])-2):
             fp_stats.append(avg(extractColumn(stats, i+2)))
-        cur.execute('INSERT INTO role_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [roles[role], avg_fp, avg_fppm] + flareData(fp_stats))
+        cur.execute('INSERT INTO role_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [roles[role], avg_fp, avg_fppm] + getFPBonusStats(fp_stats))
     conn.commit()
 
     summaryHeader('hero_summary')
