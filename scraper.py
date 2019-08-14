@@ -11,7 +11,7 @@ fail_error = 1          # fail on the first error
 ti_mode = 1             # tournament counts only if matches atleast within 5 days of eachother (removes qualifier errors)
 test_mode = 0           # uses different DB
 log_lvl = 2             # 0-nothing, 1-ERROR,2-INFO,3-DEBUG
-exec_phase = [2,3,4,5]        # 1, 2, 3, 4, 5, 6
+exec_phase = [2,3,4,5,6]        # 1, 2, 3, 4, 5, 6
 curr_utc = 0
 
 # File locations
