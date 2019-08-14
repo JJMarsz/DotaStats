@@ -9,10 +9,10 @@ from datetime import datetime
 # Control variables
 fail_error = 1          # fail on the first error
 ti_mode = 1             # tournament counts only if matches atleast within 5 days of eachother (removes qualifier errors)
-test_mode = 1           # uses different DB
+test_mode = 0           # uses different DB
 log_lvl = 2             # 0-nothing, 1-ERROR,2-INFO,3-DEBUG
-exec_phase = [1,2,3,4,5,6]        # 1, 2, 3, 4, 5, 6
-curr_utc = 1564352276
+exec_phase = [2,3,4,5]        # 1, 2, 3, 4, 5, 6
+curr_utc = 0
 
 # File locations
 f_db = 'stats.db'
