@@ -1,22 +1,45 @@
 **TLDR:** [TI9 Fantasy Stats](https://drive.google.com/open?id=1N3cIWGDwqLEtrLnu04zWSfyMQw2gJjpu)
 
+**Preface:**
+
 **Previous Day Results:**
 
 *[Match Day X Results]()*
 
 *[Match Day X Model Performance]()*
 
-*[Overal Model Performance]()*
+*[Overall Model Performance]()*
 
 *Best Base Lineup:* , , , ,
 
 ANALYSIS
 
-**Match Day X Selections:**
+**Match Day X+1 Selections:**
 
+*[Rankings](https://imgur.com/a/Cj5pDtH)*
 
-*[Rankings]()*
+a, b, c, d, e are playing the most amount of games at Y, so the rankings will exclusively be comprised of that.
 
-x, y, z, d play the most matches. ANALYSIS
+*Cores:* 
 
+*Mids:*
 
+*Supports:*
+
+**Model Selections:**
+
+*Super Rankings:*
+
+*Personal Picks:*
+
+*Favor High FP:* 
+
+*Favor Avg FP:* 
+
+*Favor Low FP:* 
+
+*Favor High FPpM:* 
+
+*Favor Avg FPpM:*
+
+*Favor Low FPpM:*
