@@ -1,0 +1,49 @@
+**TLDR:** [TI9 Fantasy Stats](https://drive.google.com/open?id=1N3cIWGDwqLEtrLnu04zWSfyMQw2gJjpu)
+
+**Preface:**
+
+With match day 1 coming to a close, we get about 9 hours to breath and recalculate our match day 2 selections. Unfortunately, with there being very little data for TI seeing as the most amount of games played were 6, I will still be using Pre TI9 statistics for my predictions. Since that is the case, I went ahead and obtained the predictions for match days 2, 3, and 4 and put them in the folder linked above. I wont be talking about days 3 and 4 in this post, but feel free to look ahead as more than likely those predictions will not change.
+
+**Previous Day Results:**
+
+*[Match Day 1 Results]()*
+
+*[Match Day 1 Model Performance]()*
+
+*[Overall Model Performance]()*
+
+*Best Base Lineup:* , , , ,
+
+ANALYSIS
+
+**Match Day 2 Selections:**
+
+*[Rankings](https://imgur.com/a/Cj5pDtH)*
+
+OG, EG, Infamous, NiP, VG, and Na'Vi are playing the most amount of games at 6, so the rankings will exclusively be comprised of that.
+
+*Cores:* rtz and Paparazi灬 are essentially tied for first place. K1 Hector and ana are on the step below with Ace following close behind. Any two of these 5 players are very safe selections. Pick whoever has the best bonus stats and who you think will win the most games.
+
+*Mids:* SumaiL tops this category easily. Chris Luck and Magical are then tied for the second tier. You shouldn't consider anyone else. To be safe, I would suggest SumaiL as he is an established player, but if your Magical or Chris Luck have good bonus stats, it may be worth the risk.
+
+*Supports:* SoNNeikO and Fly are clearly tier one, stinger and Dy comfortably in tier two, and Peterpandam by himself in tier three. Reminder, support utilize Obs Wards Planted heavily, so these players can swing to tier one even if you have a 15% on tier two or three players. 
+
+**Model Selections:**
+
+*Super Rankings:* rtz, Paparazi灬, SumaiL, SoNNeikO, Fly
+
+*Personal Picks:* rtz, ana, SumaiL, ?, ?
+
+*Favor High FP:* Ace, rtz/ana*, SumaiL, SoNNeikO, stinger
+
+*Favor Avg FP:* rtz, Paparazi灬, SumaiL, Fly, SoNNeikO
+
+*Favor Low FP:*  rtz, Paparazi灬, SumaiL,  Fly, SoNNeikO
+
+*Favor High FPpM:* ana, Paparazi灬, SumaiL, stinger, Fly
+
+*Favor Avg FPpM:* Paparazi灬, rtz, Chris Luck, SoNNeikO, Fly
+
+*Favor Low FPpM:* K1 Hector, rtz, Magical, SoNNeikO, Fly
+
+*they straight up tied

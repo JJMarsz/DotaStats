@@ -11,13 +11,13 @@ fail_error = 1          # fail on the first error
 ti_mode = 1             # tournament counts only if matches atleast within 5 days of eachother (removes qualifier errors)
 test_mode = 0           # uses different DB
 log_lvl = 2             # 0-nothing, 1-ERROR,2-INFO,3-DEBUG
-exec_phase = [1,2,3,4,5,6]        # 1, 2, 3, 4, 5, 6
+exec_phase = [6]        # 1, 2, 3, 4, 5, 6
 curr_utc = 0
 
 # File locations
-f_db = 'stats.db'
-f_params = 'params.txt'
-f_matches = 'matches4.txt'
+f_db = 'db/stats.db'
+f_params = 'params/params.txt'
+f_matches = 'params/matches.txt'
 
 # Useful constants
 day_length = 86400
@@ -214,7 +214,7 @@ def normalizeTime(time=0):
         if not curr_utc: time = (datetime.utcnow()-datetime(1970,1,1)).total_seconds()
         else: time = curr_utc
     time -= (time % day_length)# get start of day utc time
-    time += day_length/3 # add timezone offset
+    time += 2*day_length/3 # add timezone offset
     return time
 
 
@@ -383,9 +383,22 @@ if 2 in exec_phase:
     radiant_data = cur.fetchall()
     pros = apiCall('/proPlayers', key)
     recent_matches = []
+    length = 0
+    match_map = {}
     for i in range(len(radiant_data)):
-        if radiant_data[i][0] > dire_data[i][0]: recent_matches.append([radiant_data[i][1],radiant_data[i][2], 1])
-        else: recent_matches.append([dire_data[i][1],dire_data[i][2], 0])
+        if radiant_data[i][1] in match_map.keys():
+            if match_map[radiant_data[i][1]][0] < radiant_data[i][0]:
+                match_map[radiant_data[i][1]] = [radiant_data[i][0], radiant_data[i][2], 1] 
+        else:
+            match_map[radiant_data[i][1]] = [radiant_data[i][0], radiant_data[i][2], 1] 
+    for i in range(len(dire_data)):
+        if dire_data[i][1] in match_map.keys():
+            if match_map[dire_data[i][1]][0] < dire_data[i][0]:
+                match_map[dire_data[i][1]] = [dire_data[i][0], dire_data[i][2], 0] 
+        else:
+            match_map[dire_data[i][1]] = [dire_data[i][0], dire_data[i][2], 0] 
+    for team in match_map.keys():
+        recent_matches.append([team, match_map[team][1], match_map[team][2]])
     for match in recent_matches:
         cur.execute('SELECT account_id FROM player_lookup WHERE team_id = ?', [match[0],])
         num_players = len(cur.fetchall())
@@ -429,6 +442,9 @@ if 4 in exec_phase:
     players = cur.fetchall()
     for player in players:
         stats = fetchFPStats('player_data AS pd, match_data AS md WHERE md.match_id = pd.match_id AND pd.account_id = ?', [player[0],])
+        if len(stats) == 0:
+            error(player[1] + ' has no data')
+            continue
         std_dev_fp = stdDev(extractColumn(stats, 0))
         std_dev_fppm = stdDev(extractColumn(stats, 1))
         avg_fp = avg(extractColumn(stats, 0))
@@ -644,7 +660,7 @@ if 6 in exec_phase:
     start_today = normalizeTime()
     start_yest = start_today - day_length
     # retrieve all games in this range
-    cur.execute('SELECT * FROM match_data WHERE start_time < ? AND start_time > ?', [start_today, start_yest,])
+    cur.execute('SELECT * FROM match_data WHERE start_time <= ? AND start_time >= ?', [start_today, start_yest,])
     matches = cur.fetchall()
     player_data = {}
     for match in matches:
@@ -658,11 +674,19 @@ if 6 in exec_phase:
             player_data[player[1]]['role'] = player[2]
             player_data[player[1]][player[0]].append(aggFP(player[3:]))
     
+    max_series = 0
+    for player in player_data.keys():
+        if max_series < len(player_data[player].keys()):
+            max_series = len(player_data[player].keys())
+
     # now select max amount
     for player in player_data.keys():
-        for series in player_data[player].keys():
-            if series != 'role':
-                cur.execute('INSERT INTO match_day_summary VALUES (?,?,?)', [player, player_data[player]['role'], aggMax(player_data[player][series])])
+        summation = 0
+        if len(player_data[player].keys()) == max_series:
+            for series in player_data[player].keys():
+                if series != 'role':
+                    summation += aggMax(player_data[player][series])
+            cur.execute('INSERT INTO match_day_summary VALUES (?,?,?)', [player, roles[player_data[player]['role']], summation])
 
 
     conn.commit()
