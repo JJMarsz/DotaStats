@@ -11,13 +11,13 @@ fail_error = 1          # fail on the first error
 ti_mode = 1             # tournament counts only if matches atleast within 5 days of eachother (removes qualifier errors)
 test_mode = 0           # uses different DB
 log_lvl = 2             # 0-nothing, 1-ERROR,2-INFO,3-DEBUG
-exec_phase = [6]        # 1, 2, 3, 4, 5, 6
+exec_phase = [4,5,6]        # 1, 2, 3, 4, 5, 6
 curr_utc = 0
 
 # File locations
 f_db = 'db/stats.db'
 f_params = 'params/params.txt'
-f_matches = 'params/matches.txt'
+f_matches = 'params/matches4.txt'
 
 # Useful constants
 day_length = 86400
@@ -142,10 +142,10 @@ def fetchFPStats(queryTail, params):
 
 # optains fp for each bonus stat and returns a list of results
 def getFPBonusStats(stats):
-    return [int(stats[0])*points['kills'], int(stats[1])*points['deaths'] + 3, \
-    int(stats[2])*points['lh_and_d'], int(stats[3])*points['gpm'], int(stats[4])*points['tower_kills'], \
-    int(stats[5])*points['roshan_kills'], float(stats[6])*points['teamfight'], int(stats[7])*points['obs_placed'], \
-    int(stats[8])*points['camps_stacked'], int(stats[9])*points['rune_pickups'], int(stats[10])*points['first_blood'], \
+    return [float(stats[0])*points['kills'], float(stats[1])*points['deaths'] + 3, \
+    float(stats[2])*points['lh_and_d'], float(stats[3])*points['gpm'], float(stats[4])*points['tower_kills'], \
+    float(stats[5])*points['roshan_kills'], float(stats[6])*points['teamfight'], float(stats[7])*points['obs_placed'], \
+    float(stats[8])*points['camps_stacked'], float(stats[9])*points['rune_pickups'], float(stats[10])*points['first_blood'], \
     float(stats[11])*points['stuns']]
 
 # sums all of the bonus stats into a single data point
@@ -214,7 +214,7 @@ def normalizeTime(time=0):
         if not curr_utc: time = (datetime.utcnow()-datetime(1970,1,1)).total_seconds()
         else: time = curr_utc
     time -= (time % day_length)# get start of day utc time
-    time += 2*day_length/3  - day_length# add timezone offset
+    time += 2*day_length/3 # add timezone offset
     return time
 
 
@@ -662,6 +662,7 @@ if 6 in exec_phase:
     # retrieve all games in this range
     cur.execute('SELECT * FROM match_data WHERE start_time <= ? AND start_time >= ?', [start_today, start_yest,])
     matches = cur.fetchall()
+    info('Looking at ' + str(len(matches)) + ' matches')
     player_data = {}
     for match in matches:
         cur.execute('SELECT series_id, pl.name, pl.role, kills, deaths, lh_and_d, gpm, tower_kills, roshan_kills, teamfight, obs_placed, camps_stacked, rune_pickups, first_blood, stuns \
