@@ -214,7 +214,7 @@ def normalizeTime(time=0):
         if not curr_utc: time = (datetime.utcnow()-datetime(1970,1,1)).total_seconds()
         else: time = curr_utc
     time -= (time % day_length)# get start of day utc time
-    time += 2*day_length/3 # add timezone offset
+    time += 2*day_length/3  - day_length# add timezone offset
     return time
 
 
