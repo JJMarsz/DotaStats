@@ -17,7 +17,7 @@ curr_utc = 0
 # File locations
 f_db = 'db/stats.db'
 f_params = 'params/params.txt'
-f_matches = 'params/matches4.txt'
+f_matches = 'params/matches3.txt'
 
 # Useful constants
 day_length = 86400
