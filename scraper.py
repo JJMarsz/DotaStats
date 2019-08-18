@@ -10,14 +10,15 @@ from datetime import datetime
 fail_error = 1          # fail on the first error
 ti_mode = 1             # tournament counts only if matches atleast within 5 days of eachother (removes qualifier errors)
 test_mode = 0           # uses different DB
+asses_all = 1			# populates day summary table with every player
 log_lvl = 2             # 0-nothing, 1-ERROR,2-INFO,3-DEBUG
-exec_phase = [4,5,6]        # 1, 2, 3, 4, 5, 6
+exec_phase = [1,2,3,4,5,6]        # 1, 2, 3, 4, 5, 6
 curr_utc = 0
 
 # File locations
 f_db = 'db/stats.db'
 f_params = 'params/params.txt'
-f_matches = 'params/matches3.txt'
+f_matches = 'params/matches4.txt'
 
 # Useful constants
 day_length = 86400
@@ -676,9 +677,10 @@ if 6 in exec_phase:
             player_data[player[1]][player[0]].append(aggFP(player[3:]))
     
     max_series = 0
-    for player in player_data.keys():
-        if max_series < len(player_data[player].keys()):
-            max_series = len(player_data[player].keys())
+    if not asses_all:
+	    for player in player_data.keys():
+	        if max_series < len(player_data[player].keys()):
+	            max_series = len(player_data[player].keys())
 
     # now select max amount
     for player in player_data.keys():
