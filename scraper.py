@@ -10,15 +10,15 @@ from datetime import datetime
 fail_error = 1          # fail on the first error
 ti_mode = 1             # tournament counts only if matches atleast within 5 days of eachother (removes qualifier errors)
 test_mode = 0           # uses different DB
-asses_all = 1			# populates day summary table with every player
+asses_all = 0			# populates day summary table with every player
 log_lvl = 2             # 0-nothing, 1-ERROR,2-INFO,3-DEBUG
-exec_phase = [1,2,3,4,5,6]        # 1, 2, 3, 4, 5, 6
+exec_phase = [4,5,6]        # 1, 2, 3, 4, 5, 6
 curr_utc = 0
 
 # File locations
 f_db = 'db/stats.db'
 f_params = 'params/params.txt'
-f_matches = 'params/matches4.txt'
+f_matches = 'params/matches5.txt'
 
 # Useful constants
 day_length = 86400
