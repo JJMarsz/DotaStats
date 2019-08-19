@@ -14,6 +14,7 @@ asses_all = 0			# populates day summary table with every player
 log_lvl = 2             # 0-nothing, 1-ERROR,2-INFO,3-DEBUG
 exec_phase = [4,5,6]        # 1, 2, 3, 4, 5, 6
 curr_utc = 0
+days_ago = 1
 
 # File locations
 f_db = 'db/stats.db'
@@ -24,10 +25,11 @@ f_matches = 'params/matches5.txt'
 day_length = 86400
 od = 'https://api.opendota.com/api/'
 hdr = { 'User-Agent' : 'im a robot beepboop' }
-roles = {'1' : 'Core', '2' : 'Support', '4' : 'Mid'}
+roles = {'1' : 'Core', '4' : 'Mid', '2' : 'Support'}
 points = {'kills' : 0.3, 'deaths' : -0.3, 'lh_and_d' : 0.003, 'gpm' : 0.002, 'tower_kills' : 1, 'roshan_kills' : 1, 'teamfight' : 3, \
             'obs_placed' : 0.5, 'camps_stacked' : 0.5, 'rune_pickups' : 0.25, 'first_blood' : 4, 'stuns' : 0.05}# Deaths +3
 best_of = {'1':1, '2':2, '3':2, '5':3}
+role_count = {'1' : 2, '4' : 1, '2' : 2}
 
 
 ###################
@@ -216,6 +218,7 @@ def normalizeTime(time=0):
         else: time = curr_utc
     time -= (time % day_length)# get start of day utc time
     time += 2*day_length/3 # add timezone offset
+    time -= days_ago*day_length #offset by days
     return time
 
 
@@ -267,6 +270,18 @@ def loadRanks(table, col, role, max_bo, ranks):
             ranks[roles[role]][single_ranks[i][0]] += i+1
         else:
             ranks[roles[role]][single_ranks[i][0]] = i+1
+
+# selects a lineup based on a condition
+def modelPredict(table, col):
+    in_list = []
+    for role in roles.keys():
+        cur.execute('SELECT name, ' + col + ' FROM ' + table + ' WHERE role = ? ORDER BY ' + col + ' DESC', [roles[role]])
+        players = cur.fetchall()
+        for num in range(role_count[role]):
+            in_list.append(players[num][0])
+
+    cur.execute('INSERT INTO model_predictions VALUES (?,?,?,?,?,?)', [table + ' ' + col] + in_list)
+
 
 # header for summary table reseting
 def summaryHeader(table_name):
@@ -634,8 +649,6 @@ if 5 in exec_phase:
 
     else: info('No branching scenarios detected')
 
-
-    #TODO MAKE RANKINGS FOR EACH SCENARIO
     # Now create a super ranking for each player playing the most amount of matches for each role
     cur.execute('DELETE FROM rankings')
     cur.execute('SELECT MAX(num_games) FROM fp_rankings')
@@ -648,9 +661,18 @@ if 5 in exec_phase:
         loadRanks('fppm_rankings', 'high_fp', role, max_bo, ranks)
         loadRanks('fppm_rankings', 'avg_fp', role, max_bo, ranks)
         loadRanks('fppm_rankings', 'low_fp', role, max_bo, ranks)
-
         for player in ranks[roles[role]].keys():
             cur.execute('INSERT INTO rankings VALUES (?,?,?)', [player, roles[role], ranks[roles[role]][player]])
+            
+    # Insert selections for each basic model
+    cur.execute('DELETE FROM model_predictions')
+    modelPredict('rankings', 'points')
+    modelPredict('fp_rankings', 'high_fp')
+    modelPredict('fp_rankings', 'avg_fp')
+    modelPredict('fp_rankings', 'low_fp')
+    modelPredict('fppm_rankings', 'high_fp')
+    modelPredict('fppm_rankings', 'avg_fp')
+    modelPredict('fppm_rankings', 'low_fp')
 
     conn.commit()
 
