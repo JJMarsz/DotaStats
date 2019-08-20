@@ -274,13 +274,15 @@ def loadRanks(table, col, role, max_bo, ranks):
 # selects a lineup based on a condition
 def modelPredict(table, col):
     in_list = []
+    in_str = ''
     for role in roles.keys():
         cur.execute('SELECT name, ' + col + ' FROM ' + table + ' WHERE role = ? ORDER BY ' + col + ' DESC', [roles[role]])
         players = cur.fetchall()
         for num in range(role_count[role]):
             in_list.append(players[num][0])
+            in_str += players[num][0] + ', '
 
-    cur.execute('INSERT INTO model_predictions VALUES (?,?,?,?,?,?)', [table + ' ' + col] + in_list)
+    cur.execute('INSERT INTO model_predictions VALUES (?,?,?,?,?,?,?)', [table + ' ' + col] + in_list + [in_str])
 
 
 # header for summary table reseting
@@ -357,20 +359,22 @@ if 1 in exec_phase:
                 player_dp = {}
 
                 # gather match stats
-                match_dp = [int(match_data['match_id']), int(match_data['series_id']), int(match_data['radiant_win']), int(match_data['dire_team_id']), \
-                            int(match_data['radiant_team_id']), int(match_data['duration']), match_data['league']['name'], int(match_data['start_time']), None]
-                debug(str(match_dp))
-                cur.execute('INSERT INTO match_data VALUES (?,?,?,?,?,?,?,?,?)', match_dp)
-                # gather player stats
-                for player in match_data['players']:
-                    debug(str(player))
-                    player_dp = [int(player['account_id']), int(match_data['match_id']), int(player['hero_id']), int(player['isRadiant']), int(player['kills']), int(player['deaths']), 
-                                int(player['last_hits']) + int(player['denies']), int(player['gold_per_min']), int(player['tower_kills']), \
-                                int(player['roshan_kills']), float(player['teamfight_participation']), int(player['obs_placed']), \
-                                int(player['camps_stacked']), int(player['rune_pickups']), int(player['firstblood_claimed']), float(player['stuns'])]
-                    debug(str(player_dp))
-                    cur.execute('INSERT INTO player_data VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', player_dp)
-                debug('Committing data points for match ' + str(match_data['match_id']))
+                if 'series_id' in match_data.keys(): 
+                    match_dp = [int(match_data['match_id']), int(match_data['series_id']), int(match_data['radiant_win']), int(match_data['dire_team_id']), \
+                                int(match_data['radiant_team_id']), int(match_data['duration']), match_data['league']['name'], int(match_data['start_time']), None]
+                    debug(str(match_dp))
+                    cur.execute('INSERT INTO match_data VALUES (?,?,?,?,?,?,?,?,?)', match_dp)
+                    # gather player stats
+                    for player in match_data['players']:
+                        debug(str(player))
+                        player_dp = [int(player['account_id']), int(match_data['match_id']), int(player['hero_id']), int(player['isRadiant']), int(player['kills']), int(player['deaths']), 
+                                    int(player['last_hits']) + int(player['denies']), int(player['gold_per_min']), int(player['tower_kills']), \
+                                    int(player['roshan_kills']), float(player['teamfight_participation']), int(player['obs_placed']), \
+                                    int(player['camps_stacked']), int(player['rune_pickups']), int(player['firstblood_claimed']), float(player['stuns'])]
+                        debug(str(player_dp))
+                        cur.execute('INSERT INTO player_data VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', player_dp)
+                    debug('Committing data points for match ' + str(match_data['match_id']))
+                else: info('Invalid series_id (in progress match)')
             else:
                 r += 1
         conn.commit()
