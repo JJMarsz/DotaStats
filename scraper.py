@@ -14,12 +14,12 @@ asses_all = 0			# populates day summary table with every player
 log_lvl = 2             # 0-nothing, 1-ERROR,2-INFO,3-DEBUG
 exec_phase = [4,5,6]        # 1, 2, 3, 4, 5, 6
 curr_utc = 0
-days_ago = 1
+days_ago = 0
 
 # File locations
 f_db = 'db/stats.db'
 f_params = 'params/params.txt'
-f_matches = 'params/matches5.txt'
+f_matches = 'params/matches6.txt'
 
 # Useful constants
 day_length = 86400
