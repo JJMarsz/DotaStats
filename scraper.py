@@ -19,7 +19,7 @@ days_ago = 0
 # File locations
 f_db = 'db/stats.db'
 f_params = 'params/params.txt'
-f_matches = 'params/matches6.txt'
+f_matches = 'params/matches7.txt'
 
 # Useful constants
 day_length = 86400
@@ -165,11 +165,11 @@ def insertFPpMRank(player, opp, table, bo, fppm, scenario=None):
     durs = extractColumn(ts, 0)
     length = avg([secToMin(timeToSec(durs[0])), secToMin(timeToSec(durs[1]))])
     if len(fppm)==0 or 'unk_' in table:
-        cur.execute('INSERT INTO ' + table + ' VALUES (?,?,?,?,?,?,?)', [player[0], roles[player[2]], bo, bo*player[7]*length, bo*player[8]*length, \
-            bo*player[9]*length, scenario])
+        cur.execute('INSERT INTO ' + table + ' VALUES (?,?,?,?,?,?,?)', [roles[player[2]], bo, scenario, player[0], bo*player[7]*length, bo*player[8]*length, \
+            bo*player[9]*length])
     else:            
-        cur.execute('UPDATE ' + table + ' SET num_games  = ?, high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [bo + fppm[0][2], fppm[0][3] + bo*player[7]*length, \
-            fppm[0][4] + bo*player[8]*length, fppm[0][5] + bo*player[9]*length, player[0]])
+        cur.execute('UPDATE ' + table + ' SET num_games  = ?, high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [bo + fppm[0][3], fppm[0][4] + bo*player[7]*length, \
+            fppm[0][5] + bo*player[8]*length, fppm[0][6] + bo*player[9]*length, player[0]])
 
 # aggregates the max values of a fp list
 def aggMax(l):
@@ -457,7 +457,7 @@ if 3 in exec_phase:
 
 if 4 in exec_phase:
     info('Phase 4 - Aggregating data into summary tables')
-    summaryHeader('player_summary')
+    summaryHeader('player_fp_summary')
     cur.execute('SELECT * FROM player_lookup')
     players = cur.fetchall()
     for player in players:
@@ -466,22 +466,36 @@ if 4 in exec_phase:
             error(player[1] + ' has no data')
             continue
         std_dev_fp = stdDev(extractColumn(stats, 0))
-        std_dev_fppm = stdDev(extractColumn(stats, 1))
         avg_fp = avg(extractColumn(stats, 0))
-        avg_fppm = avg(extractColumn(stats, 1))
+        cur.execute('INSERT INTO player_fp_summary VALUES (?,?,?,?,?,?)', [roles[player[3]], std_dev_fp, player[1], avg_fp + std_dev_fp, \
+            avg_fp, avg_fp - std_dev_fp])
+    conn.commit()
+
+    summaryHeader('player_bonus_summary')
+    cur.execute('SELECT * FROM player_lookup')
+    players = cur.fetchall()
+    for player in players:
+        stats = fetchFPStats('player_data AS pd, match_data AS md WHERE md.match_id = pd.match_id AND pd.account_id = ?', [player[0],])
+        if len(stats) == 0:
+            error(player[1] + ' has no data')
+            continue
+        avg_fp = avg(extractColumn(stats, 0))
         fp_stats = []
         for i in range(len(stats[0])-2):
             fp_stats.append(avg(extractColumn(stats, i+2)))
-        #wins = fetchAvgStats('player_data AS pd, match_data AS md, team_lookup AS tl, player_lookup AS pl WHERE \
-        #    ((md.radiant_win = 1 and md.radiant_team_id = tl.team_id) OR (md.radiant_win = 0 and md.dire_team_id = tl.team_id)) \
-        #    AND md.match_id = pd.match_id AND tl.team_id = pl.team_id AND pd.account_id = pl.account_id AND pd.account_id = ?', [player[0],])
-        #win_dp = getAvgDataPoint(wins)
-        #losses = fetchAvgStats('player_data AS pd, match_data AS md, team_lookup AS tl, player_lookup AS pl WHERE  \
-        #    ((md.radiant_win = 0 and md.radiant_team_id = tl.team_id) OR (md.radiant_win = 1 and md.dire_team_id = tl.team_id)) \
-        #    AND md.match_id = pd.match_id AND tl.team_id = pl.team_id AND pd.account_id = pl.account_id AND pd.account_id = ?', [player[0],])
-        #loss_dp = getAvgDataPoint(losses)
-        cur.execute('INSERT INTO player_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [player[1], roles[player[3]], std_dev_fp, avg_fp + std_dev_fp, avg_fp, avg_fp - std_dev_fp, \
-            std_dev_fppm, avg_fppm + std_dev_fppm, avg_fppm, avg_fppm - std_dev_fppm] + getFPBonusStats(fp_stats))
+        cur.execute('INSERT INTO player_bonus_summary VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)', [roles[player[3]], avg_fp, player[1]] + getFPBonusStats(fp_stats))
+    conn.commit()
+
+    summaryHeader('player_fppm_summary')
+    for player in players:
+        stats = fetchFPStats('player_data AS pd, match_data AS md WHERE md.match_id = pd.match_id AND pd.account_id = ?', [player[0],])
+        if len(stats) == 0:
+            error(player[1] + ' has no data')
+            continue
+        std_dev_fppm = stdDev(extractColumn(stats, 1))
+        avg_fppm = avg(extractColumn(stats, 1))
+        cur.execute('INSERT INTO player_fppm_summary VALUES (?,?,?,?,?,?)', [roles[player[3]], std_dev_fppm, player[1], \
+            avg_fppm + std_dev_fppm, avg_fppm, avg_fppm - std_dev_fppm])
     conn.commit()
 
     summaryHeader('role_summary')
@@ -551,8 +565,8 @@ if 5 in exec_phase:
     cur.execute('DELETE FROM fppm_rankings')
     cur.execute('DELETE FROM unk_fp_stats')
     cur.execute('DELETE FROM unk_fppm_stats')
-    cur.execute('SELECT pl.name, tl.tag, pl.role, ts.avg_duration, ps.high_fp, ps.avg_fp, ps.low_fp, ps.high_fppm, ps.avg_fppm, ps.low_fppm FROM player_lookup AS pl, team_lookup AS tl, \
-        player_summary AS ps, team_summary AS ts WHERE tl.name = ts.name AND tl.team_id = pl.team_id AND ps.player_name = pl.name')
+    cur.execute('SELECT pl.name, tl.tag, pl.role, ts.avg_duration, ps.high_fp, ps.avg_fp, ps.low_fp, pms.high_fppm, pms.avg_fppm, pms.low_fppm FROM player_lookup AS pl, team_lookup AS tl, \
+        player_fp_summary AS ps, player_fppm_summary AS pms, team_summary AS ts WHERE tl.name = ts.name AND tl.team_id = pl.team_id AND ps.player_name = pl.name AND ps.player_name = pms.name')
     players = cur.fetchall()
     max_bo = 0
     for player in players:
@@ -567,9 +581,9 @@ if 5 in exec_phase:
                     cur.execute('SELECT * FROM ' + tables[0] + ' WHERE name = ?', [player[0]])
                     fp = cur.fetchall()
                     if len(fp) == 0:
-                        cur.execute('INSERT INTO '+ tables[0] + ' VALUES (?,?,?,?,?,?,?)', [player[0], roles[player[2]], bo, bo*player[4], bo*player[5], bo*player[6], None])
+                        cur.execute('INSERT INTO '+ tables[0] + ' VALUES (?,?,?,?,?,?,?)', [roles[player[2]], bo, None, player[0], bo*player[4], bo*player[5], bo*player[6]])
                     else:
-                        cur.execute('UPDATE ' + tables[0] + ' SET num_games = ?, high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [bo + fp[0][2], fp[0][3] + bo*player[4], \
+                        cur.execute('UPDATE ' + tables[0] + ' SET num_games = ?, high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [bo + fp[0][3], fp[0][4] + bo*player[4], \
                             fp[0][4] + bo*player[5], fp[0][5] + bo*player[6], player[0]])
                     cur.execute('SELECT * FROM ' + tables[1] + ' WHERE name = ?', [player[0]])
                     fppm = cur.fetchall()
@@ -666,7 +680,7 @@ if 5 in exec_phase:
         loadRanks('fppm_rankings', 'avg_fp', role, max_bo, ranks)
         loadRanks('fppm_rankings', 'low_fp', role, max_bo, ranks)
         for player in ranks[roles[role]].keys():
-            cur.execute('INSERT INTO rankings VALUES (?,?,?)', [player, roles[role], ranks[roles[role]][player]])
+            cur.execute('INSERT INTO rankings VALUES (?,?,?)', [roles[role], player, ranks[roles[role]][player]])
             
     # Insert selections for each basic model
     cur.execute('DELETE FROM model_predictions')
@@ -715,7 +729,7 @@ if 6 in exec_phase:
             for series in player_data[player].keys():
                 if series != 'role':
                     summation += aggMax(player_data[player][series])
-            cur.execute('INSERT INTO match_day_summary VALUES (?,?,?)', [player, roles[player_data[player]['role']], summation])
+            cur.execute('INSERT INTO match_day_summary VALUES (?,?,?)', [roles[player_data[player]['role']], player, summation])
 
 
     conn.commit()
