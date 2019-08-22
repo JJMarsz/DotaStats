@@ -10,7 +10,7 @@ from datetime import datetime
 fail_error = 1          # fail on the first error
 ti_mode = 1             # tournament counts only if matches atleast within 5 days of eachother (removes qualifier errors)
 test_mode = 0           # uses different DB
-asses_all = 0			# populates day summary table with every player
+asses_all = 0            # populates day summary table with every player
 log_lvl = 2             # 0-nothing, 1-ERROR,2-INFO,3-DEBUG
 exec_phase = [4,5,6]        # 1, 2, 3, 4, 5, 6
 curr_utc = 0
@@ -19,7 +19,7 @@ days_ago = 0
 # File locations
 f_db = 'db/stats.db'
 f_params = 'params/params.txt'
-f_matches = 'params/matches7.txt'
+f_matches = 'params/matches8.txt'
 
 # Useful constants
 day_length = 86400
@@ -606,18 +606,17 @@ if 5 in exec_phase:
     cur.execute('SELECT ufppms.*, ufps.high_fp, ufps.avg_fp, ufps.low_fp FROM unk_fppm_stats as ufppms, unk_fp_stats AS ufps WHERE ufppms.name = ufps.name AND \
         (ufppms.scenario = ufps.scenario OR ufps.scenario IS NULL)')
     unks = cur.fetchall()
-
     if len(unks) > 0:
         scenarios = {}# [pair][path][player_name][fp,fppm,bo]
         for unk in unks:
-            teams = fetchTeams(unk[6])
+            teams = fetchTeams(unk[2])
             if teams not in scenarios.keys():
-                scenarios[teams] = {unk[6] : {unk[0] : {'fp' : [unk[7:10]], 'fppm' : [unk[3:6]], 'bo' : unk[2]}}}
-            elif unk[6] not in scenarios[teams].keys():
-                scenarios[teams][unk[6]] = {unk[0] : {'fp' : [unk[7:10]], 'fppm' : [unk[3:6]], 'bo' : unk[2]}}
-            elif unk[0] not in scenarios[teams][unk[6]].keys():
-                scenarios[teams][unk[6]][unk[0]] = {'fp' : [unk[7:10]], 'fppm' : [unk[3:6]], 'bo' : unk[2]}
-            else: error('Already have an entry for ' + unk[0] + ' in scenario ' + teams + ' path ' + unk[6])
+                scenarios[teams] = {unk[2] : {unk[3] : {'fp' : [unk[7:10]], 'fppm' : [unk[4:7]], 'bo' : unk[1]}}}
+            elif unk[2] not in scenarios[teams].keys():
+                scenarios[teams][unk[2]] = {unk[3] : {'fp' : [unk[7:10]], 'fppm' : [unk[4:7]], 'bo' : unk[1]}}
+            elif unk[3] not in scenarios[teams][unk[2]].keys():
+                scenarios[teams][unk[2]][unk[3]] = {'fp' : [unk[7:10]], 'fppm' : [unk[4:7]], 'bo' : unk[1]}
+            else: error('Already have an entry for ' + unk[3] + ' in scenario ' + teams + ' path ' + unk[2])
         #enumerate the possibilities
         paths = []
         for scenario in scenarios.keys():
@@ -636,34 +635,50 @@ if 5 in exec_phase:
         cur.execute("SELECT name FROM sqlite_master WHERE type = 'table';")
         tables = cur.fetchall()
         for table in tables:
-        	if 'fp_rankings_' in table[0] or 'fppm_rankings_' in table[0]:
-        		cur.execute('DROP TABLE ' + table[0])
+            if 'fp_rankings_' in table[0] or 'fppm_rankings_' in table[0]:
+                cur.execute('DROP TABLE ' + table[0])
         #create len(variations) amount of tables and import the appropriate data into it
         for var in variations:
-        	name = ''
-        	for scen in var: name += scen.replace('.', 'o').replace(' ', '_')
-        	cur.execute('CREATE TABLE fp_rankings_' + name + ' AS SELECT * FROM fp_rankings WHERE 0')
-        	cur.execute('INSERT INTO fp_rankings_' + name + ' SELECT * FROM fp_rankings')
-        	cur.execute('CREATE TABLE fppm_rankings_' + name + ' AS SELECT * FROM fppm_rankings WHERE 0')
-        	cur.execute('INSERT INTO fppm_rankings_' + name + ' SELECT * FROM fppm_rankings')
-        	for scenario in scenarios.keys():
-        		for path in scenarios[scenario].keys():
-        			if path in var:
-        				for player in scenarios[scenario][path].keys():
-        					cur.execute('SELECT * FROM fp_rankings_' + name + ' WHERE name = ?', [player,])
-        					fp = cur.fetchall()
-        					cur.execute('UPDATE fp_rankings_' + name + ' SET num_games = ?, high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', \
-        						[fp[0][2] + scenarios[scenario][path][player]['bo'], \
-        						fp[0][3] + scenarios[scenario][path][player]['bo']*scenarios[scenario][path][player]['fp'][0][0], \
-                            	fp[0][4] + scenarios[scenario][path][player]['bo']*scenarios[scenario][path][player]['fp'][0][1], \
-                            	fp[0][5] + scenarios[scenario][path][player]['bo']*scenarios[scenario][path][player]['fp'][0][2], player])
-        					cur.execute('SELECT * FROM fppm_rankings_' + name + ' WHERE name = ?', [player,])
-        					fppm = cur.fetchall()
-        					cur.execute('UPDATE fppm_rankings_' + name + ' SET num_games = ?, high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', \
-        						[fppm[0][2] + scenarios[scenario][path][player]['bo'], \
-        						fppm[0][3] + scenarios[scenario][path][player]['bo']* scenarios[scenario][path][player]['fppm'][0][0], \
-                            	fppm[0][4] + scenarios[scenario][path][player]['bo']*scenarios[scenario][path][player]['fppm'][0][1], \
-                            	fppm[0][5] + scenarios[scenario][path][player]['bo']*scenarios[scenario][path][player]['fppm'][0][2], player])
+            name = ''
+            for scen in var: name += scen.replace('.', 'o').replace(' ', '_')
+            cur.execute('CREATE TABLE fp_rankings_' + name + ' AS SELECT * FROM fp_rankings WHERE 0')
+            cur.execute('INSERT INTO fp_rankings_' + name + ' SELECT * FROM fp_rankings')
+            cur.execute('CREATE TABLE fppm_rankings_' + name + ' AS SELECT * FROM fppm_rankings WHERE 0')
+            cur.execute('INSERT INTO fppm_rankings_' + name + ' SELECT * FROM fppm_rankings')
+            conn.commit()
+            for scenario in scenarios.keys():
+                for path in scenarios[scenario].keys():
+                    if path in var:
+                        for player in scenarios[scenario][path].keys():
+                            cur.execute('SELECT * FROM fp_rankings_' + name + ' WHERE name = ?', [player,])
+                            fp = cur.fetchall()
+                            if len(fp) > 0:
+                                cur.execute('UPDATE fp_rankings_' + name + ' SET num_games = ?, high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', \
+                                    [fp[0][1] + scenarios[scenario][path][player]['bo'], \
+                                    fp[0][4] + scenarios[scenario][path][player]['bo']*scenarios[scenario][path][player]['fp'][0][0], \
+                                    fp[0][5] + scenarios[scenario][path][player]['bo']*scenarios[scenario][path][player]['fp'][0][1], \
+                                    fp[0][6] + scenarios[scenario][path][player]['bo']*scenarios[scenario][path][player]['fp'][0][2], player])
+                            else:
+                                cur.execute('INSERT INTO fp_rankings_' + name + ' VALUES (?,?,?,?,?,?,?)', \
+                                      [0,  scenarios[scenario][path][player]['bo'], None, player, \
+                                    scenarios[scenario][path][player]['bo']*scenarios[scenario][path][player]['fp'][0][0], \
+                                    scenarios[scenario][path][player]['bo']*scenarios[scenario][path][player]['fp'][0][1], \
+                                    scenarios[scenario][path][player]['bo']*scenarios[scenario][path][player]['fp'][0][2]])
+                            cur.execute('SELECT * FROM fppm_rankings_' + name + ' WHERE name = ?', [player,])
+                            fppm = cur.fetchall()
+                            if len(fppm) > 0:
+                                cur.execute('UPDATE fppm_rankings_' + name + ' SET num_games = ?, high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', \
+                                    [fppm[0][1] + scenarios[scenario][path][player]['bo'], \
+                                    fppm[0][4] + scenarios[scenario][path][player]['bo']* scenarios[scenario][path][player]['fppm'][0][0], \
+                                    fppm[0][5] + scenarios[scenario][path][player]['bo']*scenarios[scenario][path][player]['fppm'][0][1], \
+                                    fppm[0][6] + scenarios[scenario][path][player]['bo']*scenarios[scenario][path][player]['fppm'][0][2], player])
+                            else:
+                                cur.execute('INSERT INTO fppm_rankings_' + name + ' VALUES (?,?,?,?,?,?,?)', \
+                                      [0,  scenarios[scenario][path][player]['bo'], None, player, \
+                                    scenarios[scenario][path][player]['bo']*scenarios[scenario][path][player]['fppm'][0][0], \
+                                    scenarios[scenario][path][player]['bo']*scenarios[scenario][path][player]['fppm'][0][1], \
+                                    scenarios[scenario][path][player]['bo']*scenarios[scenario][path][player]['fppm'][0][2]])
+
 
     else: info('No branching scenarios detected')
 
@@ -718,9 +733,9 @@ if 6 in exec_phase:
     
     max_series = 0
     if not asses_all:
-	    for player in player_data.keys():
-	        if max_series < len(player_data[player].keys()):
-	            max_series = len(player_data[player].keys())
+        for player in player_data.keys():
+            if max_series < len(player_data[player].keys()):
+                max_series = len(player_data[player].keys())
 
     # now select max amount
     for player in player_data.keys():
