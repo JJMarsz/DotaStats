@@ -20,6 +20,7 @@ days_ago = 0
 f_db = 'db/stats.db'
 f_params = 'params/params.txt'
 f_matches = 'params/matches8.txt'
+f_out_teams = 'params/out_teams.txt'
 
 # Useful constants
 day_length = 86400
@@ -45,13 +46,8 @@ def error(msg):
     if fail_error:
         sys.exit()
 
-# info log
-def info(msg):
-    if log_lvl > 1: print('[INFO] :: ' + msg)
-
-# debug log
-def debug(msg):
-    if log_lvl > 2: print('[DEBUG] :: ' + msg)
+def info(msg):if log_lvl > 1: print('[INFO] :: ' + msg)
+def debug(msg):if log_lvl > 2: print('[DEBUG] :: ' + msg)
 
 
 ################
@@ -167,8 +163,8 @@ def insertFPpMRank(player, opp, table, bo, fppm, scenario=None):
     if len(fppm)==0 or 'unk_' in table:
         cur.execute('INSERT INTO ' + table + ' VALUES (?,?,?,?,?,?,?)', [roles[player[2]], bo, scenario, player[0], bo*player[7]*length, bo*player[8]*length, \
             bo*player[9]*length])
-    else:            
-        cur.execute('UPDATE ' + table + ' SET num_games  = ?, high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [bo + fppm[0][3], fppm[0][4] + bo*player[7]*length, \
+    else:           
+        cur.execute('UPDATE ' + table + ' SET num_games  = ?, high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [bo + fppm[0][1], fppm[0][4] + bo*player[7]*length, \
             fppm[0][5] + bo*player[8]*length, fppm[0][6] + bo*player[9]*length, player[0]])
 
 # aggregates the max values of a fp list
@@ -583,8 +579,8 @@ if 5 in exec_phase:
                     if len(fp) == 0:
                         cur.execute('INSERT INTO '+ tables[0] + ' VALUES (?,?,?,?,?,?,?)', [roles[player[2]], bo, None, player[0], bo*player[4], bo*player[5], bo*player[6]])
                     else:
-                        cur.execute('UPDATE ' + tables[0] + ' SET num_games = ?, high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [bo + fp[0][3], fp[0][4] + bo*player[4], \
-                            fp[0][4] + bo*player[5], fp[0][5] + bo*player[6], player[0]])
+                        cur.execute('UPDATE ' + tables[0] + ' SET num_games = ?, high_fp = ?, avg_fp = ?, low_fp = ? WHERE name = ?', [bo + fp[0][1], fp[0][4] + bo*player[4], \
+                            fp[0][5] + bo*player[5], fp[0][6] + bo*player[6], player[0]])
                     cur.execute('SELECT * FROM ' + tables[1] + ' WHERE name = ?', [player[0]])
                     fppm = cur.fetchall()
                     # check if a team needs to be split
@@ -606,6 +602,11 @@ if 5 in exec_phase:
     cur.execute('SELECT ufppms.*, ufps.high_fp, ufps.avg_fp, ufps.low_fp FROM unk_fppm_stats as ufppms, unk_fp_stats AS ufps WHERE ufppms.name = ufps.name AND \
         (ufppms.scenario = ufps.scenario OR ufps.scenario IS NULL)')
     unks = cur.fetchall()
+    cur.execute("SELECT name FROM sqlite_master WHERE type = 'table';")
+    tables = cur.fetchall()
+    for table in tables:
+        if 'fp_rankings_' in table[0] or 'fppm_rankings_' in table[0]:
+            cur.execute('DROP TABLE ' + table[0])
     if len(unks) > 0:
         scenarios = {}# [pair][path][player_name][fp,fppm,bo]
         for unk in unks:
@@ -632,11 +633,6 @@ if 5 in exec_phase:
                         variations[i].append(paths[j][k])
                         count -= (len(paths[j]) - k - 1)*(2**(len(paths) - j - 1))
                         break
-        cur.execute("SELECT name FROM sqlite_master WHERE type = 'table';")
-        tables = cur.fetchall()
-        for table in tables:
-            if 'fp_rankings_' in table[0] or 'fppm_rankings_' in table[0]:
-                cur.execute('DROP TABLE ' + table[0])
         #create len(variations) amount of tables and import the appropriate data into it
         for var in variations:
             name = ''
@@ -645,7 +641,6 @@ if 5 in exec_phase:
             cur.execute('INSERT INTO fp_rankings_' + name + ' SELECT * FROM fp_rankings')
             cur.execute('CREATE TABLE fppm_rankings_' + name + ' AS SELECT * FROM fppm_rankings WHERE 0')
             cur.execute('INSERT INTO fppm_rankings_' + name + ' SELECT * FROM fppm_rankings')
-            conn.commit()
             for scenario in scenarios.keys():
                 for path in scenarios[scenario].keys():
                     if path in var:
