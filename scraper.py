@@ -19,7 +19,7 @@ days_ago = 0
 # File locations
 f_db = 'db/stats.db'
 f_params = 'params/params.txt'
-f_matches = 'params/matches8.txt'
+f_matches = 'params/matches9.txt'
 f_out_teams = 'params/out_teams.txt'
 
 # Useful constants
@@ -46,8 +46,10 @@ def error(msg):
     if fail_error:
         sys.exit()
 
-def info(msg):if log_lvl > 1: print('[INFO] :: ' + msg)
-def debug(msg):if log_lvl > 2: print('[DEBUG] :: ' + msg)
+def info(msg):
+    if log_lvl > 1: print('[INFO] :: ' + msg)
+def debug(msg):
+    if log_lvl > 2: print('[DEBUG] :: ' + msg)
 
 
 ################
